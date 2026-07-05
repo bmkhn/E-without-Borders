@@ -12,16 +12,11 @@ use Illuminate\View\View;
 
 class ClubController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('role:national-president');
-    }
-
     public function index(): View
     {
         $q = request()->string('q')->trim()->toString();
 
-        $clubsQuery = Club::query()->orderBy('name');
+        $clubsQuery = Club::query()->withCount('members')->orderBy('name');
 
         if ($q !== '') {
             $clubsQuery->where('name', 'like', '%' . $q . '%');

@@ -11,16 +11,11 @@ use Illuminate\View\View;
 
 class RegionController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('role:national-president');
-    }
-
     public function index(): View
     {
         $q = request()->string('q')->trim()->toString();
 
-        $regionsQuery = Region::query()->orderBy('name');
+        $regionsQuery = Region::query()->withCount('clubs')->orderBy('name');
 
         if ($q !== '') {
             $regionsQuery->where('name', 'like', '%' . $q . '%');

@@ -11,16 +11,11 @@ use Illuminate\View\View;
 
 class PositionController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('role:national-president');
-    }
-
     public function index(): View
     {
         $q = request()->string('q')->trim()->toString();
 
-        $positionsQuery = Position::query()->orderBy('name');
+        $positionsQuery = Position::query()->withCount('members')->orderBy('name');
 
         if ($q !== '') {
             $positionsQuery->where('name', 'like', '%' . $q . '%');
