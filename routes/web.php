@@ -34,6 +34,15 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         return view('admin.dashboard');
     })->name('admin.dashboard');
 
+    Route::resource('regions', \App\Http\Controllers\Admin\RegionController::class)->names([
+        'index' => 'admin.regions.index',
+        'create' => 'admin.regions.create',
+        'store' => 'admin.regions.store',
+        'edit' => 'admin.regions.edit',
+        'update' => 'admin.regions.update',
+        'destroy' => 'admin.regions.destroy',
+    ]);
+
     Route::get('/{any}', function () {
         return view('admin.*');
     })->where('any', '.*')->name('admin.catchall');
