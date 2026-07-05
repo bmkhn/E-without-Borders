@@ -17,7 +17,9 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RoleSeeder::class,
-            DefaultNationalPresidentSeeder::class,
+            DefaultRegionClubPresidentSeeder::class,
+            MemberSeeder::class,
+            CertificateSeeder::class,
         ]);
     }
 }
