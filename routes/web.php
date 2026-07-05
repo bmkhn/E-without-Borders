@@ -43,6 +43,22 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         'destroy' => 'admin.regions.destroy',
     ]);
 
+    Route::resource('clubs', \App\Http\Controllers\Admin\ClubController::class)->only([
+        'index',
+        'create',
+        'store',
+        'edit',
+        'update',
+        'destroy',
+    ])->names([
+        'index' => 'admin.clubs.index',
+        'create' => 'admin.clubs.create',
+        'store' => 'admin.clubs.store',
+        'edit' => 'admin.clubs.edit',
+        'update' => 'admin.clubs.update',
+        'destroy' => 'admin.clubs.destroy',
+    ]);
+
     Route::get('/{any}', function () {
         return view('admin.*');
     })->where('any', '.*')->name('admin.catchall');
