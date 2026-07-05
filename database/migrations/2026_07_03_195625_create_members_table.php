@@ -18,10 +18,15 @@ return new class extends Migration
             $table->foreignId('position_id')->constrained('positions')->cascadeOnDelete();
 
             $table->string('name');
+            $table->string('slug');
+            $table->string('contact_number');
+
             $table->timestamps();
             $table->softDeletes();
 
             $table->unique(['club_id', 'position_id', 'name']);
+            $table->unique(['club_id', 'slug']);
+            $table->index(['club_id', 'contact_number']);
         });
     }
 

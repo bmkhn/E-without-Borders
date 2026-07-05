@@ -11,6 +11,11 @@ use Illuminate\View\View;
 
 class RegionController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('role:national-president');
+    }
+
     public function index(): View
     {
         $q = request()->string('q')->trim()->toString();
@@ -64,7 +69,7 @@ class RegionController extends Controller
         if ($region->clubs()->exists()) {
             return redirect()
                 ->route('admin.regions.index')
-                ->with('error', 'Cannot delete region because it still contains clubs.');
+                ->with('error', 'Cannot delete region because it still contains clubs');
         }
 
         $region->delete();
