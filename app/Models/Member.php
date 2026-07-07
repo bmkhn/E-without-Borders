@@ -68,10 +68,12 @@ class Member extends Model
     }
 
     /**
-     * Generate unique slug with collision handling.
+     * Generate a globally unique slug with collision handling.
+     * Slugs are unique across all clubs so a member in multiple clubs
+     * always uses the same slug.
      * Soft-deleted members are ignored for collision checks (recommended).
      */
-    public static function generateUniqueSlug(string $firstName, string $lastName, int $clubId, ?int $ignoreMemberId = null): string
+    public static function generateUniqueSlug(string $firstName, string $lastName, ?int $ignoreMemberId = null): string
     {
         $base = static::slugify($firstName . ' ' . $lastName);
 
@@ -80,7 +82,6 @@ class Member extends Model
         }
 
         $query = static::query()
-            ->where('club_id', $clubId)
             ->where('slug', $base);
 
         if ($ignoreMemberId) {
@@ -96,7 +97,6 @@ class Member extends Model
             $candidate = "{$base}-{$i}";
 
             $candidateQuery = static::query()
-                ->where('club_id', $clubId)
                 ->where('slug', $candidate);
 
             if ($ignoreMemberId) {
@@ -113,11 +113,11 @@ class Member extends Model
     }
 
     /**
-     * Instance helper to populate slug from name parts.
+     * Instance helper to populate slug from name parts (global uniqueness).
      */
     public function applySlugFromName(): void
     {
-        $this->slug = static::generateUniqueSlug($this->first_name, $this->last_name, (int) $this->club_id, $this->id);
+        $this->slug = static::generateUniqueSlug($this->first_name, $this->last_name, $this->id);
     }
 
     /**
