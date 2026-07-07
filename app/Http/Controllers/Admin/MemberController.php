@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\MemberUpdateRequest;
 use App\Models\Club;
 use App\Models\Member;
 use App\Models\Position;
+use App\Models\Region;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -20,17 +21,48 @@ class MemberController extends Controller
     public function index(): View
     {
         $user = request()->user();
+
         $q = request()->string('q')->trim()->toString();
+        $filterRegionId = request()->integer('region_id');
+        $filterClubId = request()->integer('club_id');
+        $filterStatus = request()->string('status')->trim()->toString();
+        $filterPositionId = request()->integer('position_id');
+
+        $isClubPresident = $user->hasRole('club-president') && $user->club_id;
+        $isNationalPresident = $user->hasRole('national-president');
 
         $membersQuery = Member::query()
-            ->with(['club', 'position'])
-            ->orderBy('last_name')->orderBy('first_name');
+            ->with(['club.region', 'position']);
 
         // Club presidents are scoped to their own club
-        if ($user->hasRole('club-president') && $user->club_id) {
+        if ($isClubPresident) {
             $membersQuery->where('club_id', $user->club_id);
         }
 
+        // Region filter (NP only, since CPs are scoped)
+        if ($filterRegionId && $isNationalPresident) {
+            $membersQuery->whereHas('club', function ($q) use ($filterRegionId) {
+                $q->where('region_id', $filterRegionId);
+            });
+        }
+
+        // Club filter
+        if ($filterClubId) {
+            // CPs can only filter their own club, so this is safe
+            $membersQuery->where('club_id', $filterClubId);
+        }
+
+        // Status filter
+        if ($filterStatus !== '' && in_array($filterStatus, ['active', 'inactive'])) {
+            $membersQuery->where('status', $filterStatus);
+        }
+
+        // Position filter
+        if ($filterPositionId) {
+            $membersQuery->where('position_id', $filterPositionId);
+        }
+
+        // Search query
         if ($q !== '') {
             $membersQuery->where(function ($query) use ($q) {
                 $query->where('first_name', 'like', '%' . $q . '%')
@@ -40,11 +72,34 @@ class MemberController extends Controller
             });
         }
 
-        $members = $membersQuery->paginate(10)->withQueryString();
+        $members = $membersQuery->orderBy('last_name')->orderBy('first_name')
+            ->paginate(10)->withQueryString();
+
+        // Build filter data
+        $regions = $isNationalPresident ? Region::query()->orderBy('name')->get() : collect();
+        $clubs = Club::query()->orderBy('name');
+        if ($filterRegionId && $isNationalPresident) {
+            $clubs->where('region_id', $filterRegionId);
+        }
+        if ($isClubPresident) {
+            $clubs->where('id', $user->club_id);
+        }
+        $clubs = $clubs->get();
+
+        $positions = Position::query()->orderBy('name')->get();
 
         return view('admin.members.index', [
             'members' => $members,
             'q' => $q,
+            'filterRegionId' => $filterRegionId,
+            'filterClubId' => $filterClubId,
+            'filterStatus' => $filterStatus,
+            'filterPositionId' => $filterPositionId,
+            'regions' => $regions,
+            'clubs' => $clubs,
+            'positions' => $positions,
+            'isClubPresident' => $isClubPresident,
+            'isNationalPresident' => $isNationalPresident,
         ]);
     }
 

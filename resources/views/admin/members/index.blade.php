@@ -26,8 +26,9 @@
 
             <div class="mt-6">
                 <x-card title="Search & Manage" class="mb-6">
-                    <div class="mb-4">
-                        <form method="GET" action="{{ route('admin.members.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                    <form method="GET" action="{{ route('admin.members.index') }}" class="mb-4">
+                        <!-- Search row -->
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-4">
                             <div class="flex-1">
                                 <label for="q" class="block text-sm font-medium text-gray-700">
                                     {{ __('Search by name, contact, or slug') }}
@@ -50,17 +51,96 @@
                                     {{ __('Search') }}
                                 </button>
 
-                                @if($q !== '')
+                                @if($q !== '' || $filterRegionId || $filterClubId || $filterStatus !== '' || $filterPositionId)
                                     <a
                                         href="{{ route('admin.members.index') }}"
                                         class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-sm text-gray-700 hover:bg-gray-50 active:bg-gray-100"
                                     >
-                                        {{ __('Clear') }}
+                                        {{ __('Clear All') }}
                                     </a>
                                 @endif
                             </div>
-                        </form>
-                    </div>
+                        </div>
+
+                        <!-- Filters row -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            @if($isNationalPresident)
+                                <div>
+                                    <label for="region_id" class="block text-sm font-medium text-gray-700">{{ __('Region') }}</label>
+                                    <select
+                                        id="region_id"
+                                        name="region_id"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                        onchange="this.form.submit()"
+                                    >
+                                        <option value="">{{ __('All Regions') }}</option>
+                                        @foreach($regions as $region)
+                                            <option value="{{ $region->id }}" @selected($filterRegionId === $region->id)>
+                                                {{ $region->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @else
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">{{ __('Region') }}</label>
+                                    <p class="mt-1.5 text-sm text-gray-500">{{ $members->first()?->club?->region?->name ?? '—' }}</p>
+                                </div>
+                            @endif
+
+                            <div>
+                                <label for="club_id" class="block text-sm font-medium text-gray-700">{{ __('Club') }}</label>
+                                @if($isClubPresident)
+                                    <p class="mt-1.5 text-sm text-gray-500">{{ $clubs->first()?->name ?? '—' }}</p>
+                                @else
+                                    <select
+                                        id="club_id"
+                                        name="club_id"
+                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                        onchange="this.form.submit()"
+                                    >
+                                        <option value="">{{ __('All Clubs') }}</option>
+                                        @foreach($clubs as $club)
+                                            <option value="{{ $club->id }}" @selected($filterClubId === $club->id)>
+                                                {{ $club->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                @endif
+                            </div>
+
+                            <div>
+                                <label for="status" class="block text-sm font-medium text-gray-700">{{ __('Status') }}</label>
+                                <select
+                                    id="status"
+                                    name="status"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                    onchange="this.form.submit()"
+                                >
+                                    <option value="">{{ __('All Statuses') }}</option>
+                                    <option value="active" @selected($filterStatus === 'active')>{{ __('Active') }}</option>
+                                    <option value="inactive" @selected($filterStatus === 'inactive')>{{ __('Inactive') }}</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="position_id" class="block text-sm font-medium text-gray-700">{{ __('Position') }}</label>
+                                <select
+                                    id="position_id"
+                                    name="position_id"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                    onchange="this.form.submit()"
+                                >
+                                    <option value="">{{ __('All Positions') }}</option>
+                                    @foreach($positions as $position)
+                                        <option value="{{ $position->id }}" @selected($filterPositionId === $position->id)>
+                                            {{ $position->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </form>
 
                     <x-table class="min-w-full">
                         <x-table-head>

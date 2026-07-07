@@ -86,9 +86,24 @@
                         <div class="pt-16 p-8">
                             <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
                                 <div class="flex-1">
-                                    <h1 class="text-3xl sm:text-4xl font-bold text-white mb-1">
-                                        {{ $member->name }}
-                                    </h1>
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <h1 class="text-3xl sm:text-4xl font-bold text-white">
+                                            {{ $member->name }}
+                                        </h1>
+
+                                        @if($member->status === 'active')
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 border border-green-500/20 text-green-400">
+                                                <span class="size-1.5 rounded-full bg-green-500"></span>
+                                                {{ __('Active') }}
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/10 border border-gray-500/20 text-gray-400">
+                                                <span class="size-1.5 rounded-full bg-gray-400"></span>
+                                                {{ __('Inactive') }}
+                                            </span>
+                                        @endif
+                                    </div>
+
                                     @if($member->position)
                                         <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-medium">
                                             <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
