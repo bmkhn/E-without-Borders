@@ -24,44 +24,115 @@
                     @csrf
                     @method('PUT')
 
-                    <div class="space-y-2">
+                    <div class="space-y-6">
+                        {{-- Club Details --}}
                         <div>
-                            <x-input-label for="region_id" :value="__('Region')" />
-                            <select
-                                id="region_id"
-                                name="region_id"
-                                required
-                                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            >
-                                @foreach($regions as $region)
-                                    <option value="{{ $region->id }}" @selected(old('region_id', $club->region_id) == $region->id)>
-                                        {{ $region->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('region_id')
-                                <x-input-error class="mt-1" :messages="[$message]" />
-                            @enderror
+                            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">{{ __('Club Details') }}</h3>
+                            <div class="space-y-2">
+                                <div>
+                                    <x-input-label for="region_id" :value="__('Region')" />
+                                    <select
+                                        id="region_id"
+                                        name="region_id"
+                                        required
+                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    >
+                                        @foreach($regions as $region)
+                                            <option value="{{ $region->id }}" @selected(old('region_id', $club->region_id) == $region->id)>
+                                                {{ $region->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('region_id')
+                                        <x-input-error class="mt-1" :messages="[$message]" />
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <x-input-label for="name" :value="__('Club Name')" />
+                                    <input
+                                        id="name"
+                                        name="name"
+                                        type="text"
+                                        value="{{ old('name', $club->name) }}"
+                                        required
+                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    @error('name')
+                                        <x-input-error class="mt-1" :messages="[$message]" />
+                                    @enderror
+                                </div>
+                            </div>
                         </div>
 
-                        <div>
-                            <x-input-label for="name" :value="__('Name')" />
-                            <input
-                                id="name"
-                                name="name"
-                                type="text"
-                                value="{{ old('name', $club->name) }}"
-                                required
-                                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            />
-                            @error('name')
-                                <x-input-error class="mt-1" :messages="[$message]" />
-                            @enderror
+                        {{-- Club President Account --}}
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">{{ __('Club President Account') }}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ __('Update the club president\'s login credentials. Leave fields blank to keep current values.') }}</p>
+                            <div class="space-y-2">
+                                <div>
+                                    <x-input-label for="cp_name" :value="__('Name')" />
+                                    <input
+                                        id="cp_name"
+                                        name="cp_name"
+                                        type="text"
+                                        value="{{ old('cp_name', $club->clubPresident?->name ?? '') }}"
+                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    @error('cp_name')
+                                        <x-input-error class="mt-1" :messages="[$message]" />
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <x-input-label for="cp_email" :value="__('Email')" />
+                                    <input
+                                        id="cp_email"
+                                        name="cp_email"
+                                        type="email"
+                                        value="{{ old('cp_email', $club->clubPresident?->email ?? '') }}"
+                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    @error('cp_email')
+                                        <x-input-error class="mt-1" :messages="[$message]" />
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <x-input-label for="cp_password" :value="__('New Password')" />
+                                    <input
+                                        id="cp_password"
+                                        name="cp_password"
+                                        type="password"
+                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        placeholder="{{ __('Leave blank to keep current') }}"
+                                    />
+                                    @error('cp_password')
+                                        <x-input-error class="mt-1" :messages="[$message]" />
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <x-input-label for="cp_password_confirmation" :value="__('Confirm New Password')" />
+                                    <input
+                                        id="cp_password_confirmation"
+                                        name="cp_password_confirmation"
+                                        type="password"
+                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        placeholder="{{ __('Leave blank to keep current') }}"
+                                    />
+                                </div>
+
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    {{ __('Note: The club president account is tied to this club and cannot be deleted here.') }}
+                                </p>
+                            </div>
                         </div>
 
                         <div class="flex items-center gap-3 pt-2">
                             <button
                                 type="submit"
+                                onclick="return confirm('{{ __('Are you sure you want to update this club and its club president account?') }}')"
                                 class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-sm text-white hover:bg-indigo-500 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                             >
                                 {{ __('Update') }}

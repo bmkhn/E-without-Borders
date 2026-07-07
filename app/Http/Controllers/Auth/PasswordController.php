@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -25,5 +26,21 @@ class PasswordController extends Controller
         ]);
 
         return back()->with('status', 'password-updated');
+    }
+
+    /**
+     * Check if the current password is correct (for live validation).
+     */
+    public function checkCurrent(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => ['required', 'string'],
+        ]);
+
+        $isValid = Hash::check($request->current_password, $request->user()->password);
+
+        return response()->json([
+            'valid' => $isValid,
+        ]);
     }
 }

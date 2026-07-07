@@ -19,11 +19,18 @@
                 </div>
             </div>
 
-            <div class="p-4 sm:p-8 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.delete-user-form')
+            @php
+                $user = Auth::user();
+                $isProtected = $user && ($user->hasRole('national-president') || $user->hasRole('club-president'));
+            @endphp
+
+            @if(!$isProtected)
+                <div class="p-4 sm:p-8 bg-white dark:bg-gray-800 shadow sm:rounded-lg">
+                    <div class="max-w-xl">
+                        @include('profile.partials.delete-user-form')
+                    </div>
                 </div>
-            </div>
+            @endif
         </div>
     </div>
 </x-app-layout>

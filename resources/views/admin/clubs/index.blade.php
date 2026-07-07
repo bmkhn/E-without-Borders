@@ -50,7 +50,8 @@
                                     {{ __('Search') }}
                                 </button>
 
-                                @if($q !== '')                                        <a
+                                @if($q !== '')
+                                        <a
                                             href="{{ route('admin.clubs.index') }}"
                                             class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md font-semibold text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 active:bg-gray-100"
                                         >
@@ -67,6 +68,7 @@
                                 <x-table-column>{{ __('Name') }}</x-table-column>
                                 <x-table-column>{{ __('Region') }}</x-table-column>
                                 <x-table-column>{{ __('Members') }}</x-table-column>
+                                <x-table-column>{{ __('Club President') }}</x-table-column>
                                 <x-table-column class="text-right">{{ __('Actions') }}</x-table-column>
                             </tr>
                         </x-table-head>
@@ -87,7 +89,18 @@
                                             {{ $club->members_count }} {{ Str::plural('member', $club->members_count) }}
                                         </span>
                                     @else
-                                        <span class="text-gray-400 dark:text-gray-500">—</span>
+                                        <span class="text-gray-400 dark:text-gray-500">&mdash;</span>
+                                    @endif
+                                </td>
+
+                                <td class="px-3 py-3.5 text-sm text-gray-700 dark:text-gray-300">
+                                    @if($club->clubPresident)
+                                        <div class="flex flex-col">
+                                            <span class="font-medium text-gray-900 dark:text-gray-100">{{ $club->clubPresident->name }}</span>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ $club->clubPresident->email }}</span>
+                                        </div>
+                                    @else
+                                        <span class="text-gray-400 dark:text-gray-500">&mdash;</span>
                                     @endif
                                 </td>
 
@@ -114,7 +127,7 @@
                                                 <button
                                                     type="submit"
                                                     class="inline-flex items-center px-3 py-1.5 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-md text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-900/50"
-                                                    onclick="return confirm('{{ __('Are you sure you want to delete this club?') }}')"
+                                                    onclick="return confirm('{{ __('Are you sure you want to delete this club? This will also remove the club president login account.') }}')"
                                                 >
                                                     {{ __('Delete') }}
                                                 </button>
