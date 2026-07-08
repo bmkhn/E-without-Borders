@@ -11,21 +11,47 @@
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans text-gray-900 antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
-            <div>
-                <a href="/">
-                    <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
+    <body class="font-sans antialiased bg-gray-950">
+        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0">
+            <!-- Background Effect -->
+            <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                <div class="absolute -top-40 -right-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl"></div>
+                <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-amber-600/5 rounded-full blur-3xl"></div>
+            </div>
+
+            <!-- Logo -->
+            <div class="relative mb-8">
+                <a href="/" class="flex flex-col items-center gap-3 group">
+                    <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-white/10 flex items-center justify-center p-4 group-hover:border-amber-500/30 group-hover:shadow-lg group-hover:shadow-amber-500/10 transition-all duration-300">
+                        <x-application-logo class="w-full h-full" />
+                    </div>
+                    <div class="text-center">
+                        <span class="text-amber-500 font-extrabold text-2xl tracking-tight">Eagles</span>
+                        <span class="text-white/40 font-light text-2xl tracking-tight">Without Borders</span>
+                    </div>
                 </a>
             </div>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
-                {{ $slot }}
+            <!-- Card -->
+            <div class="relative w-full sm:max-w-md px-4">
+                <div class="bg-gradient-to-br from-gray-900 to-gray-950 rounded-3xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden">
+                    <div class="relative h-1.5 bg-gradient-to-r from-amber-600/40 via-amber-500/30 to-transparent"></div>
+                    <div class="px-8 py-8">
+                        {{ $slot }}
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="mt-8 text-center">
+                    <p class="text-sm text-gray-600">
+                        &copy; {{ date('Y') }} Eagles Without Borders. All rights reserved.
+                    </p>
+                </div>
             </div>
         </div>
     </body>

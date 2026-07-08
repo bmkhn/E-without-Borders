@@ -44,8 +44,8 @@
                 <div class="flex items-center justify-between h-16">
                     <a href="/" class="flex items-center gap-2">
                         <img src="{{ asset('images/logo.png') }}" alt="" class="h-8 w-auto">
-                        <span class="text-amber-500 font-extrabold text-xl tracking-tight">Eagles</span>
-                        <span class="text-white/70 font-light hidden sm:inline">Without Borders</span>
+                        <span class="text-amber-500 font-extrabold text-lg sm:text-xl tracking-tight">Eagles</span>
+                        <span class="text-white/70 font-light text-lg sm:text-xl tracking-tight whitespace-nowrap">Without Borders</span>
                     </a>
 
                     <div class="flex items-center gap-6">
