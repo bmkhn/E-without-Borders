@@ -67,6 +67,15 @@ class MemberController extends Controller
             });
         }
 
+        $totalCount = (clone $membersQuery)->count();
+
+        // Unfiltered total (role-scoped but without ad-hoc filters)
+        $unfilteredQuery = Member::query();
+        if ($isClubPresident) {
+            $unfilteredQuery->where('club_id', $user->club_id);
+        }
+        $unfilteredTotal = (clone $unfilteredQuery)->count();
+
         $members = $membersQuery->orderBy('last_name')->orderBy('first_name')
             ->paginate(10)->withQueryString();
 
@@ -80,7 +89,13 @@ class MemberController extends Controller
         }
         $clubs = $clubs->get();
 
-        $positions = Position::query()->orderBy('name')->get();
+        $positionsQuery = Position::query()->orderBy('name');
+
+        if ($isClubPresident) {
+            $positionsQuery->where('name', '!=', 'National President');
+        }
+
+        $positions = $positionsQuery->get();
 
         return view('admin.members.index', [
             'members' => $members,
@@ -92,6 +107,8 @@ class MemberController extends Controller
             'regions' => $regions,
             'clubs' => $clubs,
             'positions' => $positions,
+            'totalCount' => $totalCount,
+            'unfilteredTotal' => $unfilteredTotal,
             'isClubPresident' => $isClubPresident,
             'isNationalPresident' => $isNationalPresident,
         ]);
@@ -107,9 +124,14 @@ class MemberController extends Controller
             $clubs = Club::query()->orderBy('name')->get();
         }
 
+        $positionsQuery = Position::query()->orderBy('name');
+        if ($user->hasRole('club-president')) {
+            $positionsQuery->where('name', '!=', 'National President');
+        }
+
         return view('admin.members.create', [
             'clubs' => $clubs,
-            'positions' => Position::query()->orderBy('name')->get(),
+            'positions' => $positionsQuery->get(),
         ]);
     }
 
@@ -152,10 +174,15 @@ class MemberController extends Controller
             $clubs = Club::query()->orderBy('name')->get();
         }
 
+        $positionsQuery = Position::query()->orderBy('name');
+        if ($user->hasRole('club-president')) {
+            $positionsQuery->where('name', '!=', 'National President');
+        }
+
         return view('admin.members.edit', [
             'member' => $member->load(['club', 'position', 'certificates']),
             'clubs' => $clubs,
-            'positions' => Position::query()->orderBy('name')->get(),
+            'positions' => $positionsQuery->get(),
         ]);
     }
 

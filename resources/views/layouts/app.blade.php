@@ -51,7 +51,11 @@
         <div class="min-h-screen">
             <div class="flex min-h-screen">
                 <!-- Sidebar (Desktop) -->
-                <div class="hidden lg:block lg:flex-shrink-0">
+                <div
+                    x-cloak
+                    class="hidden lg:block lg:flex-shrink-0 transition-[width] duration-200"
+                    :class="sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'"
+                >
                     @include('layouts.sidebar')
                 </div>
 

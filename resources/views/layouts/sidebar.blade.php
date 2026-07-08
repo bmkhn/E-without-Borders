@@ -4,9 +4,7 @@
     $isAdmin = $user?->hasAnyRole(['national-president', 'club-president']);
 @endphp    <aside
         x-data
-        x-cloak
-        :class="sidebarCollapsed ? 'hidden lg:block lg:w-16 lg:flex-shrink-0' : 'lg:block lg:w-64 lg:flex-shrink-0'"
-        class="flex h-full w-full flex-col transition-all duration-200"
+        class="flex h-full w-full flex-col"
     >
     <div class="flex h-full flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <!-- Branding -->

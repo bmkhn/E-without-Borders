@@ -24,6 +24,10 @@ class MemberSeeder extends Seeder
             return;
         }
 
+        // Only 1 National President member across all clubs
+        $nationalPresidentPosition = $positions->firstWhere('name', 'National President');
+        $otherPositions = $positions->filter(fn($p) => $p->name !== 'National President')->values();
+
         // 50 unique name combinations — no duplicates across the entire database
         $members = [
             ['first_name' => 'Juan',       'middle_initial' => 'M', 'last_name' => 'Dela Cruz',    'suffix' => null],
@@ -78,18 +82,38 @@ class MemberSeeder extends Seeder
             ['first_name' => 'Victoria',   'middle_initial' => 'E', 'last_name' => 'Samson',       'suffix' => null],
         ];
 
-        $contactBase = 1001;
+        // Create the single National President member (first club)
+        if ($nationalPresidentPosition && $clubs->isNotEmpty()) {
+            $npData = array_shift($members); // Take Juan Dela Cruz out of the pool
+            $np = new Member([
+                'club_id' => null, // National President has no club
+                'position_id' => $nationalPresidentPosition->id,
+                'first_name' => $npData['first_name'],
+                'middle_initial' => $npData['middle_initial'],
+                'last_name' => $npData['last_name'],
+                'suffix' => $npData['suffix'],
+                'status' => 'active',
+                'contact_number' => '09170001001',
+            ]);
+            $np->applySlugFromName();
+            $np->save();
+            $this->command->info('Created 1 National President member.');
+        }
+
+        $contactBase = 1002;
 
         foreach ($clubs as $clubIndex => $club) {
             $createdCount = 0;
 
             for ($i = 0; $i < 10; $i++) {
                 $memberIndex = $clubIndex * 10 + $i;
-                $memberData = $members[$memberIndex];
+                $memberData = $members[$memberIndex % count($members)];
 
                 $contactNumber = '0917' . str_pad((string)($contactBase + $memberIndex), 7, '0', STR_PAD_LEFT);
 
-                $position = $positions->get($i % $positions->count());
+                $position = $otherPositions->isNotEmpty()
+                    ? $otherPositions->get($i % $otherPositions->count())
+                    : $positions->get($i % $positions->count());
 
                 $member = new Member([
                     'club_id' => $club->id,

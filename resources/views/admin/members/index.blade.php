@@ -26,6 +26,32 @@
 
             <div class="mt-6">
                 <x-card title="Search & Manage" class="mb-6">
+                    <!-- Member Count -->
+                    <div class="mb-5 flex items-center gap-3 flex-wrap">
+                        @php $hasFilters = $q !== '' || $filterRegionId || $filterClubId || $filterStatus !== '' || $filterPositionId; @endphp
+
+                        <div class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <svg class="size-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            @if($hasFilters)
+                                <span class="text-sm">
+                                    <span class="font-bold text-gray-900 dark:text-gray-100">{{ $totalCount }}</span>
+                                    <span class="text-gray-500 dark:text-gray-400">{{ Str::plural('member', $totalCount) }}</span>
+                                    <span class="text-gray-400 dark:text-gray-500 mx-1">/</span>
+                                    <span class="font-bold text-amber-600 dark:text-amber-400">{{ $unfilteredTotal }}</span>
+                                    <span class="text-gray-500 dark:text-gray-400">{{ Str::plural('member', $unfilteredTotal) }}</span>
+                                    <span class="text-xs text-gray-400 dark:text-gray-500 ml-1">{{ __('total') }}</span>
+                                </span>
+                            @else
+                                <span class="text-sm">
+                                    <span class="font-bold text-gray-900 dark:text-gray-100">{{ $totalCount }}</span>
+                                    <span class="text-gray-500 dark:text-gray-400">{{ Str::plural('member', $totalCount) }}</span>
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+
                     <form method="GET" action="{{ route('admin.members.index') }}" class="mb-4">
                         <!-- Search row -->
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-4">
