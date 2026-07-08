@@ -24,9 +24,9 @@
                 <x-alert type="danger">{{ session('error') }}</x-alert>
             @endif
 
-            <div class="mt-6">
+            <div class="mt-6" x-data="{ showImport: false }">
                 <x-card title="Search & Manage" class="mb-6">
-                    <!-- Member Count -->
+                    <!-- Member Count + Import/Export -->
                     <div class="mb-5 flex items-center gap-3 flex-wrap">
                         @php $hasFilters = $q !== '' || $filterRegionId || $filterClubId || $filterStatus !== '' || $filterPositionId; @endphp
 
@@ -49,6 +49,31 @@
                                     <span class="text-gray-500 dark:text-gray-400">{{ Str::plural('member', $totalCount) }}</span>
                                 </span>
                             @endif
+                        </div>
+
+                        <div class="ml-auto flex items-center gap-2">
+                            <!-- Export Button -->
+                            <a
+                                href="{{ route('admin.members.export') }}"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                            >
+                                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                {{ __('Export CSV') }}
+                            </a>
+
+                            <!-- Import Button -->
+                            <button
+                                type="button"
+                                @click="showImport = !showImport"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs font-semibold text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition"
+                            >
+                                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+                                </svg>
+                                {{ __('Import CSV') }}
+                            </button>
                         </div>
                     </div>
 
@@ -172,6 +197,74 @@
                             </div>
                         </div>
                     </form>
+
+                    <!-- Import Form (hidden by default) -->
+                    <div
+                        x-show="showImport"
+                        x-cloak
+                        x-transition
+                        class="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700"
+                    >
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                            <svg class="size-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+                            </svg>
+                            {{ __('Import Members from CSV') }}
+                        </h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                            {{ __('CSV must include columns: First Name, M.I., Last Name, Suffix, Contact Number, Position, Status.') }}
+                            {{ __('Duplicates (same name + contact number) will be skipped.') }}
+                        </p>
+
+                        <form method="POST" action="{{ route('admin.members.import') }}" enctype="multipart/form-data">
+                            @csrf
+                            <div class="flex flex-col sm:flex-row items-start sm:items-end gap-3">
+                                <div class="flex-1 w-full sm:w-auto">
+                                    <x-input-label for="import_club_id" :value="__('Target Club')" />
+                                    <select
+                                        id="import_club_id"
+                                        name="club_id"
+                                        required
+                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                    >
+                                        <option value="">{{ __('Select club') }}</option>
+                                        @foreach($clubs as $club)
+                                            <option value="{{ $club->id }}">{{ $club->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="flex-1 w-full sm:w-auto">
+                                    <x-input-label for="import_file" :value="__('CSV File')" />
+                                    <input
+                                        id="import_file"
+                                        name="file"
+                                        type="file"
+                                        accept=".csv,.txt"
+                                        required
+                                        class="mt-1 block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-indigo-900/30 file:text-indigo-700 dark:file:text-indigo-400 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-900/50"
+                                    />
+                                </div>
+                                <div class="flex gap-2 shrink-0">
+                                    <button
+                                        type="submit"
+                                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 dark:bg-indigo-500 border border-transparent rounded-md font-semibold text-xs text-white hover:bg-indigo-500 dark:hover:bg-indigo-400 transition"
+                                    >
+                                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
+                                        </svg>
+                                        {{ __('Import') }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="showImport = false"
+                                        class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md font-semibold text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition"
+                                    >
+                                        {{ __('Cancel') }}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
 
                     <x-table class="min-w-full">
                         <x-table-head>

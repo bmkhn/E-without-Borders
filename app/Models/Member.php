@@ -199,4 +199,28 @@ class Member extends Model
     {
         return $this->hasMany(Certificate::class);
     }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Check if this member has paid for a given year.
+     */
+    public function hasPaidForYear(int $year): bool
+    {
+        return $this->payments()
+            ->where('year_paid', $year)
+            ->exists();
+    }
+
+    /**
+     * The latest year this member has paid for.
+     */
+    public function latestPaidYear(): ?int
+    {
+        return $this->payments()
+            ->max('year_paid');
+    }
 }

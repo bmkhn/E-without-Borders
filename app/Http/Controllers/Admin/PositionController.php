@@ -36,7 +36,12 @@ class PositionController extends Controller
 
     public function store(PositionStoreRequest $request): RedirectResponse
     {
-        Position::create($request->validated());
+        $position = Position::create($request->validated());
+
+        activity()
+            ->performedOn($position)
+            ->causedBy(auth()->user())
+            ->log('created');
 
         return redirect()
             ->route('admin.positions.index')
@@ -54,6 +59,11 @@ class PositionController extends Controller
     {
         $position->update($request->validated());
 
+        activity()
+            ->performedOn($position)
+            ->causedBy(auth()->user())
+            ->log('updated');
+
         return redirect()
             ->route('admin.positions.index')
             ->with('success', 'Position updated successfully.');
@@ -66,6 +76,11 @@ class PositionController extends Controller
                 ->route('admin.positions.index')
                 ->with('error', 'Cannot delete position because it still contains members');
         }
+
+        activity()
+            ->performedOn($position)
+            ->causedBy(auth()->user())
+            ->log('deleted');
 
         $position->delete();
 

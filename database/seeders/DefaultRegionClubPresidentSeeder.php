@@ -55,28 +55,28 @@ class DefaultRegionClubPresidentSeeder extends Seeder
         $clubs = [
             [
                 'name' => 'Roxas Pangolin Eagles Club',
-                'cp_name' => 'CP - Roxas Pangolin Eagles Club',
-                'cp_email' => 'cp.roxas@example.com',
+                'cp_name' => 'CA - Roxas Pangolin Eagles Club',
+                'cp_email' => 'ca.roxas@example.com',
             ],
             [
                 'name' => 'Roxas Pangolin Lady Eagles Club',
-                'cp_name' => 'CP - Roxas Pangolin Lady Eagles Club',
-                'cp_email' => 'cp.roxaslady@example.com',
+                'cp_name' => 'Club Admin - Roxas Pangolin Lady Eagles Club',
+                'cp_email' => 'ca.roxaslady@example.com',
             ],
             [
                 'name' => 'Puerto de Paragua Eagles Club',
-                'cp_name' => 'CP - Puerto de Paragua Eagles Club',
-                'cp_email' => 'cp.puerto@example.com',
+                'cp_name' => 'Club Admin - Puerto de Paragua Eagles Club',
+                'cp_email' => 'ca.puerto@example.com',
             ],
             [
                 'name' => 'Puerto de Paragua Lady Eagles Club',
-                'cp_name' => 'CP - Puerto de Paragua Lady Eagles Club',
-                'cp_email' => 'cp.puertolady@example.com',
+                'cp_name' => 'Club Admin - Puerto de Paragua Lady Eagles Club',
+                'cp_email' => 'ca.puertolady@example.com',
             ],
             [
                 'name' => 'The Eagles of Australia Eagles Club',
-                'cp_name' => 'CP - The Eagles of Australia Eagles Club',
-                'cp_email' => 'cp.australia@example.com',
+                'cp_name' => 'Club Admin - The Eagles of Australia Eagles Club',
+                'cp_email' => 'ca.australia@example.com',
             ],
         ];
 

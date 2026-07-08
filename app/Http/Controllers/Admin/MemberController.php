@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\MemberImportRequest;
 use App\Http\Requests\Admin\MemberStoreRequest;
 use App\Http\Requests\Admin\MemberUpdateRequest;
 use App\Models\Certificate;
@@ -11,6 +12,7 @@ use App\Models\Member;
 use App\Models\Position;
 use App\Models\Region;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -138,16 +140,19 @@ class MemberController extends Controller
     {
         $user = request()->user();
 
-        if ($user->hasRole('club-admin') && $user->club_id) {
+        $isClubAdmin = $user->hasRole('club-admin') && $user->club_id;
+        $isRegionalAdmin = $user->hasRole('regional-admin') && $user->region_id;
+
+        if ($isClubAdmin) {
             $clubs = Club::query()->where('id', $user->club_id)->get();
-        } elseif ($user->hasRole('regional-admin') && $user->region_id) {
+        } elseif ($isRegionalAdmin) {
             $clubs = Club::query()->where('region_id', $user->region_id)->get();
         } else {
             $clubs = Club::query()->orderBy('name')->get();
         }
 
         $positionsQuery = Position::query()->orderBy('name');
-        if ($user->hasRole('club-admin') || $user->hasRole('regional-admin')) {
+        if ($isClubAdmin || $isRegionalAdmin) {
             $positionsQuery->where('name', '!=', 'National President');
         }
 
@@ -161,9 +166,11 @@ class MemberController extends Controller
     {
         $user = request()->user();
 
+        $isClubAdmin = $user->hasRole('club-admin') && $user->club_id;
+
         $data = $request->safe()->except(['profile_picture', 'certificates']);
 
-        if ($user->hasRole('club-admin') && $user->club_id) {
+        if ($isClubAdmin) {
             $data['club_id'] = $user->club_id;
         }
 
@@ -195,21 +202,24 @@ class MemberController extends Controller
     {
         $user = request()->user();
 
-        if ($user->hasRole('club-admin') && $user->club_id) {
+        $isClubAdmin = $user->hasRole('club-admin') && $user->club_id;
+        $isRegionalAdmin = $user->hasRole('regional-admin') && $user->region_id;
+
+        if ($isClubAdmin) {
             $clubs = Club::query()->where('id', $user->club_id)->get();
-        } elseif ($user->hasRole('regional-admin') && $user->region_id) {
+        } elseif ($isRegionalAdmin) {
             $clubs = Club::query()->where('region_id', $user->region_id)->get();
         } else {
             $clubs = Club::query()->orderBy('name')->get();
         }
 
         $positionsQuery = Position::query()->orderBy('name');
-        if ($user->hasRole('club-admin') || $user->hasRole('regional-admin')) {
+        if ($isClubAdmin || $isRegionalAdmin) {
             $positionsQuery->where('name', '!=', 'National President');
         }
 
         return view('admin.members.edit', [
-            'member' => $member->load(['club', 'position', 'certificates']),
+            'member' => $member->load(['club', 'position', 'certificates', 'payments']),
             'clubs' => $clubs,
             'positions' => $positionsQuery->get(),
         ]);
@@ -219,9 +229,11 @@ class MemberController extends Controller
     {
         $user = request()->user();
 
+        $isClubAdmin = $user->hasRole('club-admin') && $user->club_id;
+
         $data = $request->safe()->except(['profile_picture', 'remove_photo', 'certificates']);
 
-        if ($user->hasRole('club-admin') && $user->club_id) {
+        if ($isClubAdmin) {
             $data['club_id'] = $user->club_id;
         }
 
@@ -252,6 +264,248 @@ class MemberController extends Controller
         return redirect()
             ->route('admin.members.index')
             ->with('success', 'Member updated successfully.');
+    }
+
+    /**
+     * Export members to CSV.
+     */
+    public function export(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $user = request()->user();
+
+        $isClubAdmin = $user->hasRole('club-admin') && $user->club_id;
+        $isRegionalAdmin = $user->hasRole('regional-admin') && $user->region_id;
+
+        $membersQuery = Member::query()->with('position')->orderBy('last_name')->orderBy('first_name');
+
+        if ($isClubAdmin) {
+            $membersQuery->where('club_id', $user->club_id);
+        } elseif ($isRegionalAdmin) {
+            $membersQuery->whereHas('club', fn ($q) => $q->where('region_id', $user->region_id));
+        }
+
+        $members = $membersQuery->get();
+
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties(['count' => $members->count()])
+            ->log('exported_members');
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="members-export-'.now()->format('Y-m-d').'.csv"',
+        ];
+
+        $callback = function () use ($members) {
+            $handle = fopen('php://output', 'w');
+            // BOM for Excel UTF-8 compatibility
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, ['First Name', 'M.I.', 'Last Name', 'Suffix', 'Contact Number', 'Position', 'Status']);
+
+            foreach ($members as $member) {
+                fputcsv($handle, [
+                    $member->first_name,
+                    $member->middle_initial,
+                    $member->last_name,
+                    $member->suffix,
+                    $member->contact_number,
+                    $member->position?->name ?? '',
+                    $member->status,
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Import members from CSV.
+     */
+    public function import(MemberImportRequest $request): RedirectResponse
+    {
+        $user = request()->user();
+        $clubId = $request->integer('club_id');
+        $club = Club::findOrFail($clubId);
+
+        $isClubAdmin = $user->hasRole('club-admin') && $user->club_id;
+        $isRegionalAdmin = $user->hasRole('regional-admin') && $user->region_id;
+
+        // ── Scoping validation ─────────────────────────────────
+
+        // Club Admin: can only import to their own club
+        if ($isClubAdmin && (int) $clubId !== (int) $user->club_id) {
+            return redirect()
+                ->route('admin.members.index')
+                ->with('error', 'Club admins can only import members into their own club.');
+        }
+
+        // Regional Admin: can only import to clubs within their region
+        if ($isRegionalAdmin && (int) $club->region_id !== (int) $user->region_id) {
+            return redirect()
+                ->route('admin.members.index')
+                ->with('error', 'Regional admins can only import members into clubs within their region.');
+        }
+
+        // ── Parse CSV ──────────────────────────────────────────
+        $file = $request->file('file');
+        $handle = fopen($file->getPathname(), 'r');
+
+        // Detect and skip BOM
+        $bom = fread($handle, 3);
+        if ($bom !== "\xEF\xBB\xBF") {
+            rewind($handle);
+        }
+
+        // Read header row
+        $header = fgetcsv($handle);
+        if (!$header) {
+            fclose($handle);
+            return redirect()
+                ->route('admin.members.index')
+                ->with('error', 'The CSV file appears to be empty or invalid.');
+        }
+
+        // Normalize headers
+        $header = array_map(fn ($h) => trim(mb_strtolower(str_replace(['-', ' '], '_', $h))), $header);
+
+        $expectedHeaders = ['first_name', 'm.i.', 'last_name', 'suffix', 'contact_number', 'position', 'status'];
+        // Also accept 'middle_initial' instead of 'm.i.'
+        $normalizedHeaders = array_map(function ($h) {
+            return $h === 'middle_initial' ? 'm.i.' : $h;
+        }, $header);
+
+        $missing = array_diff($expectedHeaders, $normalizedHeaders);
+        if (!empty($missing)) {
+            fclose($handle);
+            return redirect()
+                ->route('admin.members.index')
+                ->with('error', 'CSV is missing required columns: ' . implode(', ', $missing) .
+                    '. Expected: First Name, M.I., Last Name, Suffix, Contact Number, Position, Status.');
+        }
+
+        // Build column index map
+        $colMap = [];
+        foreach ($normalizedHeaders as $i => $name) {
+            $colMap[$name] = $i;
+        }
+
+        // ── Process rows ───────────────────────────────────────
+        $imported = 0;
+        $skipped = 0;
+        $errors = [];
+        $rowNumber = 1; // header was row 1
+
+        $nationalPresidentPosition = Position::where('name', 'National President')->first();
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $rowNumber++;
+
+            $row = array_map('trim', $row);
+
+            // Skip empty rows
+            if (count($row) < 3 || (implode('', $row) === '')) {
+                continue;
+            }
+
+            $firstName = $row[$colMap['first_name']] ?? '';
+            $middleInitial = $row[$colMap['m.i.']] ?? '';
+            $lastName = $row[$colMap['last_name']] ?? '';
+            $suffix = $row[$colMap['suffix']] ?? '';
+            $contactNumber = $row[$colMap['contact_number']] ?? '';
+            $positionName = $row[$colMap['position']] ?? '';
+            $status = $row[$colMap['status']] ?? 'active';
+
+            // Validate required fields
+            if (empty($firstName) || empty($lastName)) {
+                $errors[] = "Row {$rowNumber}: First Name and Last Name are required.";
+                continue;
+            }
+
+            // Normalize status
+            $statusNormalized = in_array(mb_strtolower($status), ['active', 'inactive']) ? mb_strtolower($status) : 'active';
+
+            // Find position by name
+            $position = Position::where('name', $positionName)->first();
+            if (!$position) {
+                $errors[] = "Row {$rowNumber}: Position '{$positionName}' not found. Skipping.";
+                continue;
+            }
+
+            // Check for National President restriction
+            if ($nationalPresidentPosition && (int) $position->id === (int) $nationalPresidentPosition->id) {
+                if ($isClubAdmin || $isRegionalAdmin) {
+                    $errors[] = "Row {$rowNumber}: Cannot import a member with 'National President' position.";
+                    continue;
+                }
+            }
+
+            // Check for exact duplicate (same first_name + last_name + contact_number in the same club)
+            $duplicate = Member::query()
+                ->where('club_id', $clubId)
+                ->whereRaw('LOWER(TRIM(first_name)) = ?', [mb_strtolower(trim($firstName))])
+                ->whereRaw('LOWER(TRIM(last_name)) = ?', [mb_strtolower(trim($lastName))])
+                ->where('contact_number', $contactNumber)
+                ->first();
+
+            if ($duplicate) {
+                $skipped++;
+                continue;
+            }
+
+            // Create member
+            $member = new Member([
+                'club_id' => $clubId,
+                'position_id' => $position->id,
+                'first_name' => $firstName,
+                'middle_initial' => $middleInitial ?: null,
+                'last_name' => $lastName,
+                'suffix' => $suffix ?: null,
+                'contact_number' => $contactNumber,
+                'status' => $statusNormalized,
+            ]);
+            $member->applySlugFromName();
+            $member->save();
+
+            $imported++;
+
+            // Log each imported member individually
+            activity()
+                ->performedOn($member)
+                ->causedBy(auth()->user())
+                ->withProperties(['source' => 'csv_import'])
+                ->log('created');
+        }
+
+        fclose($handle);
+
+        // ── Log the import batch ───────────────────────────────
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'imported' => $imported,
+                'skipped' => $skipped,
+                'errors' => count($errors),
+                'club_id' => $clubId,
+                'club_name' => $club->name,
+            ])
+            ->log('imported_members');
+
+        // ── Build response ─────────────────────────────────────
+        $message = "Import complete. {$imported} member(s) created, {$skipped} duplicate(s) skipped.";
+        if (!empty($errors)) {
+            $message .= ' Errors: ' . implode(' ', array_slice($errors, 0, 5));
+            if (count($errors) > 5) {
+                $message .= ' (and ' . (count($errors) - 5) . ' more errors)';
+            }
+        }
+
+        $flashType = !empty($errors) ? 'error' : 'success';
+
+        return redirect()
+            ->route('admin.members.index')
+            ->with($flashType, $message);
     }
 
     public function destroy(Member $member): RedirectResponse

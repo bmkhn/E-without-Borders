@@ -173,6 +173,7 @@ class AdminController extends Controller
     {
         $q = request()->string('q')->trim()->toString();
         $filterEvent = request()->string('event')->trim()->toString();
+        $filterLogName = request()->string('log_name')->trim()->toString();
 
         $logsQuery = Activity::query()->with('causer')->latest();
 
@@ -190,6 +191,10 @@ class AdminController extends Controller
             $logsQuery->where('description', $filterEvent);
         }
 
+        if ($filterLogName !== '') {
+            $logsQuery->where('log_name', $filterLogName);
+        }
+
         $logs = $logsQuery->paginate(20)->withQueryString();
 
         $eventTypes = Activity::query()
@@ -198,11 +203,19 @@ class AdminController extends Controller
             ->pluck('description')
             ->toArray();
 
+        $logNames = Activity::query()
+            ->select('log_name')
+            ->distinct()
+            ->pluck('log_name')
+            ->toArray();
+
         return view('admin.audit-logs', [
             'logs' => $logs,
             'q' => $q,
             'filterEvent' => $filterEvent,
+            'filterLogName' => $filterLogName,
             'eventTypes' => $eventTypes,
+            'logNames' => $logNames,
         ]);
     }
 }

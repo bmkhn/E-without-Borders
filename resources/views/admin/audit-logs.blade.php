@@ -24,6 +24,18 @@
                                 />
                             </div>
                             <select
+                                name="log_name"
+                                class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                onchange="this.form.submit()"
+                            >
+                                <option value="">{{ __('All Log Types') }}</option>
+                                @foreach($logNames as $logName)
+                                    <option value="{{ $logName }}" @selected($filterLogName === $logName)>
+                                        {{ $logName === 'default' ? __('General') : Str::headline($logName) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <select
                                 name="event"
                                 class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                                 onchange="this.form.submit()"
