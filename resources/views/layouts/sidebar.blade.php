@@ -1,11 +1,16 @@
 @php
     $user = auth()->user();
-    $isNp = $user?->hasRole('national-president');
-    $isAdmin = $user?->hasAnyRole(['national-president', 'club-president']);
-@endphp    <aside
-        x-data
-        class="flex h-full w-full flex-col"
-    >
+    $isSuperAdmin = $user?->hasRole('super-admin');
+    $isNationalAdmin = $user?->hasRole('national-admin');
+    $isRegionalAdmin = $user?->hasRole('regional-admin');
+    $isClubAdmin = $user?->hasRole('club-admin');
+    $isNationLevel = $isSuperAdmin || $isNationalAdmin;
+    $isAdmin = $user?->hasAnyRole(['super-admin', 'national-admin', 'regional-admin', 'club-admin']);
+@endphp
+<aside
+    x-data
+    class="flex h-full w-full flex-col"
+>
     <div class="flex h-full flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <!-- Branding -->
         <div class="flex items-center gap-2 px-4 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -31,10 +36,33 @@
                     </a>
                 </li>
 
-                @if($isNp)
+                @if($isSuperAdmin)
+                    <!-- Super Admin Section -->
                     <li class="pt-3 mt-3 border-t border-gray-100 dark:border-gray-800">
-                        <span x-show="!sidebarCollapsed" class="px-2 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Admin') }}</span>
+                        <span x-show="!sidebarCollapsed" class="px-2 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Super Admin') }}</span>
                     </li>
+
+                    <li>
+                        <a
+                            href="{{ route('admin.admins.index') }}"
+                            class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-200 transition {{ request()->routeIs('admin.admins.*') ? 'bg-gray-100 dark:bg-gray-800' : '' }}"
+                            title="{{ __('Admin Accounts') }}"
+                            :class="sidebarCollapsed ? 'justify-center px-0' : ''"
+                        >
+                            <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span x-show="!sidebarCollapsed">{{ __('Admin Accounts') }}</span>
+                        </a>
+                    </li>
+                @endif
+
+                @if($isNationLevel || $isSuperAdmin)
+                    @if(!$isSuperAdmin)
+                        <li class="pt-3 mt-3 border-t border-gray-100 dark:border-gray-800">
+                            <span x-show="!sidebarCollapsed" class="px-2 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Admin') }}</span>
+                        </li>
+                    @endif
 
                     <li>
                         <a
@@ -79,9 +107,30 @@
                     </li>
                 @endif
 
-                <!-- Members Section -->
+                <!-- Regional Admin: Club Management -->
+                @if($isRegionalAdmin)
+                    <li class="pt-3 mt-3 border-t border-gray-100 dark:border-gray-800">
+                        <span x-show="!sidebarCollapsed" class="px-2 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Regional Management') }}</span>
+                    </li>
+
+                    <li>
+                        <a
+                            href="{{ route('admin.clubs.index') }}"
+                            class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-200 transition {{ request()->routeIs('admin.clubs.*') ? 'bg-gray-100 dark:bg-gray-800' : '' }}"
+                            title="{{ __('Clubs') }}"
+                            :class="sidebarCollapsed ? 'justify-center px-0' : ''"
+                        >
+                            <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            <span x-show="!sidebarCollapsed">{{ __('Clubs') }}</span>
+                        </a>
+                    </li>
+                @endif
+
+                <!-- Members Section (for all admin roles) -->
                 @if($isAdmin)
-                    @if(!$isNp)
+                    @if(!$isNationLevel && !$isSuperAdmin && !$isRegionalAdmin)
                         <li class="pt-3 mt-3 border-t border-gray-100 dark:border-gray-800">
                             <span x-show="!sidebarCollapsed" class="px-2 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Club Management') }}</span>
                         </li>
@@ -101,6 +150,22 @@
                         </a>
                     </li>
 
+                    <!-- Audit Logs (Super Admin & National Admin) -->
+                    @if($isSuperAdmin || $isNationalAdmin)
+                        <li class="mt-1">
+                            <a
+                                href="{{ route('admin.audit-logs') }}"
+                                class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-200 transition {{ request()->routeIs('admin.audit-logs') ? 'bg-gray-100 dark:bg-gray-800' : '' }}"
+                                title="{{ __('Audit Logs') }}"
+                                :class="sidebarCollapsed ? 'justify-center px-0' : ''"
+                            >
+                                <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                </svg>
+                                <span x-show="!sidebarCollapsed">{{ __('Audit Logs') }}</span>
+                            </a>
+                        </li>
+                    @endif
                 @endif
             </ul>
         </nav>
@@ -128,6 +193,14 @@
                 <div class="pt-3 mt-3 border-t border-gray-100 dark:border-gray-800">
                     <div x-show="!sidebarCollapsed" class="mb-2 text-xs text-gray-500 dark:text-gray-400 truncate px-1">
                         <span class="font-medium text-gray-700 dark:text-gray-300">{{ $user->name }}</span>
+                        <br>
+                        <span class="text-gray-400">
+                            @if($isSuperAdmin){{ __('Super Admin') }}
+                            @elseif($isNationalAdmin){{ __('National Admin') }}
+                            @elseif($isRegionalAdmin){{ __('Regional Admin') }}
+                            @elseif($isClubAdmin){{ __('Club Admin') }}
+                            @endif
+                        </span>
                     </div>
 
                     <!-- Settings -->

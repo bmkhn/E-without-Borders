@@ -24,13 +24,36 @@ Route::get('/admin/login', function () {
     return redirect()->route('login');
 })->name('admin.login');
 
-Route::middleware(['auth', 'club.scope'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'scope'])->prefix('admin')->group(function () {
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
     })->name('admin.dashboard');
 
+    // Super Admin only: admin management
+    Route::middleware('role:super-admin')->group(function () {
+        Route::get('/admins', [\App\Http\Controllers\Admin\AdminController::class, 'index'])
+            ->name('admin.admins.index');
+        Route::get('/admins/create', [\App\Http\Controllers\Admin\AdminController::class, 'create'])
+            ->name('admin.admins.create');
+        Route::post('/admins', [\App\Http\Controllers\Admin\AdminController::class, 'store'])
+            ->name('admin.admins.store');
+        Route::get('/admins/{admin}/edit', [\App\Http\Controllers\Admin\AdminController::class, 'edit'])
+            ->name('admin.admins.edit');
+        Route::patch('/admins/{admin}', [\App\Http\Controllers\Admin\AdminController::class, 'update'])
+            ->name('admin.admins.update');
+        Route::delete('/admins/{admin}', [\App\Http\Controllers\Admin\AdminController::class, 'destroy'])
+            ->name('admin.admins.destroy');
+    });
+
+    // Super Admin & National Admin: audit logs
+    Route::middleware('role:super-admin|national-admin')->group(function () {
+        Route::get('/audit-logs', [\App\Http\Controllers\Admin\AdminController::class, 'auditLogs'])
+            ->name('admin.audit-logs');
+    });
+
+    // Regions: Super Admin & National Admin only
     Route::resource('regions', \App\Http\Controllers\Admin\RegionController::class)
-        ->middleware('role:national-president')
+        ->middleware('role:super-admin|national-admin')
         ->names([
             'index' => 'admin.regions.index',
             'create' => 'admin.regions.create',
@@ -40,8 +63,9 @@ Route::middleware(['auth', 'club.scope'])->prefix('admin')->group(function () {
             'destroy' => 'admin.regions.destroy',
         ]);
 
+    // Clubs: Super Admin, National Admin, & Regional Admin (scoped to their region)
     Route::resource('clubs', \App\Http\Controllers\Admin\ClubController::class)
-        ->middleware('role:national-president')
+        ->middleware('role:super-admin|national-admin|regional-admin')
         ->only([
             'index',
             'create',
@@ -58,8 +82,9 @@ Route::middleware(['auth', 'club.scope'])->prefix('admin')->group(function () {
             'destroy' => 'admin.clubs.destroy',
         ]);
 
+    // Positions: Super Admin & National Admin only
     Route::resource('positions', \App\Http\Controllers\Admin\PositionController::class)
-        ->middleware('role:national-president')
+        ->middleware('role:super-admin|national-admin')
         ->only([
             'index',
             'create',
@@ -76,8 +101,9 @@ Route::middleware(['auth', 'club.scope'])->prefix('admin')->group(function () {
             'destroy' => 'admin.positions.destroy',
         ]);
 
+    // Members: All admin roles (scoped)
     Route::resource('members', \App\Http\Controllers\Admin\MemberController::class)
-        ->middleware('role:national-president|club-president')
+        ->middleware('role:super-admin|national-admin|regional-admin|club-admin')
         ->except(['show'])
         ->names([
             'index' => 'admin.members.index',

@@ -7,7 +7,7 @@
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <x-card title="Update Region">
+            <x-card title="Update Region: {{ $region->name }}">
                 @if ($errors->any())
                     <div class="mb-4">
                         <x-alert type="danger">
@@ -24,9 +24,9 @@
                     @csrf
                     @method('PUT')
 
-                    <div class="space-y-2">
+                    <div class="space-y-4">
                         <div>
-                            <x-input-label for="name" :value="__('Name')" />
+                            <x-input-label for="name" :value="__('Region Name')" />
                             <input
                                 id="name"
                                 name="name"
@@ -40,12 +40,72 @@
                             @enderror
                         </div>
 
+                        <!-- Regional Admin Account Section -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">{{ __('Regional Admin Account') }}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ __('Leave password blank to keep the current one.') }}</p>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <x-input-label for="ra_name" :value="__('Admin Name')" />
+                                    <input
+                                        id="ra_name"
+                                        name="ra_name"
+                                        type="text"
+                                        value="{{ old('ra_name', optional($region->regionalAdmin)->name) }}"
+                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    @error('ra_name')
+                                        <x-input-error class="mt-1" :messages="[$message]" />
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <x-input-label for="ra_email" :value="__('Admin Email')" />
+                                    <input
+                                        id="ra_email"
+                                        name="ra_email"
+                                        type="email"
+                                        value="{{ old('ra_email', optional($region->regionalAdmin)->email) }}"
+                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                    @error('ra_email')
+                                        <x-input-error class="mt-1" :messages="[$message]" />
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <x-input-label for="ra_password" :value="__('New Password')" />
+                                    <input
+                                        id="ra_password"
+                                        name="ra_password"
+                                        type="password"
+                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        placeholder="{{ __('Leave blank to keep current') }}"
+                                    />
+                                    @error('ra_password')
+                                        <x-input-error class="mt-1" :messages="[$message]" />
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <x-input-label for="ra_password_confirmation" :value="__('Confirm Password')" />
+                                    <input
+                                        id="ra_password_confirmation"
+                                        name="ra_password_confirmation"
+                                        type="password"
+                                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="flex items-center gap-3 pt-2">
                             <button
                                 type="submit"
-                                class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-sm text-white hover:bg-indigo-500 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                class="inline-flex items-center px-4 py-2 bg-indigo-600 dark:bg-indigo-500 border border-transparent rounded-md font-semibold text-sm text-white hover:bg-indigo-500 dark:hover:bg-indigo-400 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                             >
-                                {{ __('Update') }}
+                                {{ __('Update Region') }}
                             </button>
 
                             <a

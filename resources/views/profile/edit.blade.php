@@ -21,7 +21,7 @@
 
             @php
                 $user = Auth::user();
-                $isProtected = $user && ($user->hasRole('national-president') || $user->hasRole('club-president'));
+                $isProtected = $user && ($user->hasRole('super-admin') || $user->hasRole('national-admin') || $user->hasRole('regional-admin') || $user->hasRole('club-admin'));
             @endphp
 
             @if(!$isProtected)

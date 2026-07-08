@@ -12,26 +12,46 @@ class DefaultRegionClubPresidentSeeder extends Seeder
 {
     public function run(): void
     {
-        // Create the region
+        // 1. Create Super Admin (no region/club assignment)
+        $superAdmin = User::firstOrCreate(
+            ['email' => 'superadmin@example.com'],
+            [
+                'name' => 'Super Admin',
+                'password' => Hash::make('password'),
+            ]
+        );
+        $superAdmin->syncRoles(['super-admin']);
+
+        // 2. Create National Admin (no region/club assignment)
+        $nationalAdmin = User::firstOrCreate(
+            ['email' => 'nationaladmin@example.com'],
+            [
+                'name' => 'National Admin',
+                'password' => Hash::make('password'),
+            ]
+        );
+        $nationalAdmin->syncRoles(['national-admin']);
+
+        // 3. Create the region
         $region = Region::firstOrCreate([
             'name' => 'Palawan Region 8',
         ]);
 
-        // Create the National President (only one)
-        $np = User::firstOrCreate(
+        // 4. Create Regional Admin for this region
+        $regionalAdmin = User::firstOrCreate(
+            ['email' => 'regionaladmin@example.com'],
             [
-                'email' => 'np@example.com',
-            ],
-            [
-                'name' => 'National President',
+                'name' => 'Regional Admin - Palawan',
                 'password' => Hash::make('password'),
-                'club_id' => null, // No club assignment
+                'region_id' => $region->id,
             ]
         );
 
-        $np->syncRoles(['national-president']);
+        if (!$regionalAdmin->hasRole('regional-admin')) {
+            $regionalAdmin->syncRoles(['regional-admin']);
+        }
 
-        // Clubs and their respective Club Presidents
+        // 5. Clubs and their respective Club Admins
         $clubs = [
             [
                 'name' => 'Roxas Pangolin Eagles Club',
@@ -62,18 +82,12 @@ class DefaultRegionClubPresidentSeeder extends Seeder
 
         foreach ($clubs as $data) {
             $club = Club::firstOrCreate(
-                [
-                    'name' => $data['name'],
-                ],
-                [
-                    'region_id' => $region->id,
-                ]
+                ['name' => $data['name']],
+                ['region_id' => $region->id]
             );
 
-            $cp = User::firstOrCreate(
-                [
-                    'email' => $data['cp_email'],
-                ],
+            $cp = User::updateOrCreate(
+                ['email' => $data['cp_email']],
                 [
                     'name' => $data['cp_name'],
                     'password' => Hash::make('password'),
@@ -81,11 +95,11 @@ class DefaultRegionClubPresidentSeeder extends Seeder
                 ]
             );
 
-            $cp->club_id = $club->id;
-            $cp->save();
-            $cp->syncRoles(['club-president']);
+            if (!$cp->hasRole('club-admin')) {
+                $cp->syncRoles(['club-admin']);
+            }
         }
 
-        $this->command->info('Region, clubs, National President, and Club Presidents seeded successfully.');
+        $this->command->info('Admin accounts seeded: super-admin, national-admin, regional-admin, and 5 club-admins.');
     }
 }

@@ -27,6 +27,7 @@ class User extends Authenticatable
         'email',
         'password',
         'club_id',
+        'region_id',
     ];
 
     /**
@@ -55,5 +56,10 @@ class User extends Authenticatable
     public function club(): BelongsTo
     {
         return $this->belongsTo(Club::class);
+    }
+
+    public function region(): BelongsTo
+    {
+        return $this->belongsTo(Region::class);
     }
 }

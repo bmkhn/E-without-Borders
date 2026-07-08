@@ -30,17 +30,25 @@ class MemberController extends Controller
         $filterStatus = request()->string('status')->trim()->toString();
         $filterPositionId = request()->integer('position_id');
 
-        $isClubPresident = $user->hasRole('club-president') && $user->club_id;
-        $isNationalPresident = $user->hasRole('national-president');
+        $isSuperAdmin = $user->hasRole('super-admin');
+        $isNationalAdmin = $user->hasRole('national-admin');
+        $isRegionalAdmin = $user->hasRole('regional-admin') && $user->region_id;
+        $isClubAdmin = $user->hasRole('club-admin') && $user->club_id;
 
         $membersQuery = Member::query()
             ->with(['club.region', 'position']);
 
-        if ($isClubPresident) {
+        if ($isClubAdmin) {
             $membersQuery->where('club_id', $user->club_id);
         }
 
-        if ($filterRegionId && $isNationalPresident) {
+        if ($isRegionalAdmin) {
+            $membersQuery->whereHas('club', function ($q) use ($user) {
+                $q->where('region_id', $user->region_id);
+            });
+        }
+
+        if ($filterRegionId && ($isSuperAdmin || $isNationalAdmin)) {
             $membersQuery->whereHas('club', function ($q) use ($filterRegionId) {
                 $q->where('region_id', $filterRegionId);
             });
@@ -71,27 +79,37 @@ class MemberController extends Controller
 
         // Unfiltered total (role-scoped but without ad-hoc filters)
         $unfilteredQuery = Member::query();
-        if ($isClubPresident) {
+        if ($isClubAdmin) {
             $unfilteredQuery->where('club_id', $user->club_id);
+        }
+        if ($isRegionalAdmin) {
+            $unfilteredQuery->whereHas('club', function ($q) use ($user) {
+                $q->where('region_id', $user->region_id);
+            });
         }
         $unfilteredTotal = (clone $unfilteredQuery)->count();
 
         $members = $membersQuery->orderBy('last_name')->orderBy('first_name')
             ->paginate(10)->withQueryString();
 
-        $regions = $isNationalPresident ? Region::query()->orderBy('name')->get() : collect();
-        $clubs = Club::query()->orderBy('name');
-        if ($filterRegionId && $isNationalPresident) {
-            $clubs->where('region_id', $filterRegionId);
+        $regions = ($isSuperAdmin || $isNationalAdmin) ? Region::query()->orderBy('name')->get() : collect();
+        $clubsQuery = Club::query()->orderBy('name');
+
+        if ($isRegionalAdmin) {
+            $clubsQuery->where('region_id', $user->region_id);
         }
-        if ($isClubPresident) {
-            $clubs->where('id', $user->club_id);
+
+        if ($filterRegionId && ($isSuperAdmin || $isNationalAdmin)) {
+            $clubsQuery->where('region_id', $filterRegionId);
         }
-        $clubs = $clubs->get();
+        if ($isClubAdmin) {
+            $clubsQuery->where('id', $user->club_id);
+        }
+        $clubs = $clubsQuery->get();
 
         $positionsQuery = Position::query()->orderBy('name');
 
-        if ($isClubPresident) {
+        if ($isClubAdmin || $isRegionalAdmin) {
             $positionsQuery->where('name', '!=', 'National President');
         }
 
@@ -109,8 +127,10 @@ class MemberController extends Controller
             'positions' => $positions,
             'totalCount' => $totalCount,
             'unfilteredTotal' => $unfilteredTotal,
-            'isClubPresident' => $isClubPresident,
-            'isNationalPresident' => $isNationalPresident,
+            'isClubAdmin' => $isClubAdmin,
+            'isSuperAdmin' => $isSuperAdmin,
+            'isNationalAdmin' => $isNationalAdmin,
+            'isRegionalAdmin' => $isRegionalAdmin,
         ]);
     }
 
@@ -118,14 +138,16 @@ class MemberController extends Controller
     {
         $user = request()->user();
 
-        if ($user->hasRole('club-president') && $user->club_id) {
+        if ($user->hasRole('club-admin') && $user->club_id) {
             $clubs = Club::query()->where('id', $user->club_id)->get();
+        } elseif ($user->hasRole('regional-admin') && $user->region_id) {
+            $clubs = Club::query()->where('region_id', $user->region_id)->get();
         } else {
             $clubs = Club::query()->orderBy('name')->get();
         }
 
         $positionsQuery = Position::query()->orderBy('name');
-        if ($user->hasRole('club-president')) {
+        if ($user->hasRole('club-admin') || $user->hasRole('regional-admin')) {
             $positionsQuery->where('name', '!=', 'National President');
         }
 
@@ -141,7 +163,7 @@ class MemberController extends Controller
 
         $data = $request->safe()->except(['profile_picture', 'certificates']);
 
-        if ($user->hasRole('club-president') && $user->club_id) {
+        if ($user->hasRole('club-admin') && $user->club_id) {
             $data['club_id'] = $user->club_id;
         }
 
@@ -159,6 +181,11 @@ class MemberController extends Controller
             $this->syncCertificates($member, $request);
         }
 
+        activity()
+            ->performedOn($member)
+            ->causedBy(auth()->user())
+            ->log('created');
+
         return redirect()
             ->route('admin.members.index')
             ->with('success', 'Member created successfully.');
@@ -168,14 +195,16 @@ class MemberController extends Controller
     {
         $user = request()->user();
 
-        if ($user->hasRole('club-president') && $user->club_id) {
+        if ($user->hasRole('club-admin') && $user->club_id) {
             $clubs = Club::query()->where('id', $user->club_id)->get();
+        } elseif ($user->hasRole('regional-admin') && $user->region_id) {
+            $clubs = Club::query()->where('region_id', $user->region_id)->get();
         } else {
             $clubs = Club::query()->orderBy('name')->get();
         }
 
         $positionsQuery = Position::query()->orderBy('name');
-        if ($user->hasRole('club-president')) {
+        if ($user->hasRole('club-admin') || $user->hasRole('regional-admin')) {
             $positionsQuery->where('name', '!=', 'National President');
         }
 
@@ -192,7 +221,7 @@ class MemberController extends Controller
 
         $data = $request->safe()->except(['profile_picture', 'remove_photo', 'certificates']);
 
-        if ($user->hasRole('club-president') && $user->club_id) {
+        if ($user->hasRole('club-admin') && $user->club_id) {
             $data['club_id'] = $user->club_id;
         }
 
@@ -215,6 +244,11 @@ class MemberController extends Controller
             $this->syncCertificates($member, $request);
         }
 
+        activity()
+            ->performedOn($member)
+            ->causedBy(auth()->user())
+            ->log('updated');
+
         return redirect()
             ->route('admin.members.index')
             ->with('success', 'Member updated successfully.');
@@ -231,6 +265,11 @@ class MemberController extends Controller
                 Storage::disk('public')->delete($cert->file);
             }
         }
+
+        activity()
+            ->performedOn($member)
+            ->causedBy(auth()->user())
+            ->log('deleted');
 
         $member->delete();
 
@@ -249,16 +288,12 @@ class MemberController extends Controller
 
     /**
      * Store and optimize an uploaded file.
-     *
-     * - Images: resized to fit within max dimensions, converted to WebP at given quality
-     * - PDFs: stored as-is (no server-side compression available)
      */
     private function optimizeAndStoreImage(UploadedFile $file, string $directory, int $maxWidth = 1200, int $maxHeight = 1200, int $quality = 70): string
     {
         $manager = new ImageManager(new Driver());
         $image = $manager->decode($file);
 
-        // Resize to fit within max dimensions while maintaining aspect ratio
         $image->scale(width: $maxWidth, height: $maxHeight);
 
         $filename = uniqid('img_') . '.webp';
@@ -272,19 +307,15 @@ class MemberController extends Controller
 
     /**
      * Store a certificate file with optimization.
-     *
-     * Images are resized/converted to WebP. PDFs are stored as-is.
      */
     private function storeCertificateFile(UploadedFile $file): string
     {
         $mime = $file->getMimeType();
 
-        // Images: optimize by resizing and converting to WebP
         if (str_starts_with($mime, 'image/')) {
             return $this->optimizeAndStoreImage($file, 'certificates', 1200, 1200, 70);
         }
 
-        // PDFs and other files: store as-is
         $extension = $file->getClientOriginalExtension() ?: 'pdf';
         $filename = uniqid('cert_') . '.' . $extension;
 

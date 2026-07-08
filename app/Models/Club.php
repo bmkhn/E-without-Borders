@@ -31,7 +31,7 @@ class Club extends Model
     {
         return $this->hasOne(User::class, 'club_id')
             ->whereHas('roles', function ($q) {
-                $q->where('name', 'club-president');
+                $q->where('name', 'club-admin');
             });
     }
 }

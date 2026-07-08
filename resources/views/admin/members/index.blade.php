@@ -90,9 +90,9 @@
 
                         <!-- Filters row -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                            @if($isNationalPresident)
+                            @if($isSuperAdmin || $isNationalAdmin)
                                 <div>
-                                    <label for="region_id" class="block text-sm font-medium text-gray-700">{{ __('Region') }}</label>
+                                    <label for="region_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Region') }}</label>
                                     <select
                                         id="region_id"
                                         name="region_id"
@@ -107,16 +107,21 @@
                                         @endforeach
                                     </select>
                                 </div>
-                            @else
+                            @elseif($isRegionalAdmin)
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Region') }}</label>
                                     <p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">{{ $members->first()?->club?->region?->name ?? '—' }}</p>
+                                </div>
+                            @else
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Region') }}</label>
+                                    <p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">—</p>
                                 </div>
                             @endif
 
                             <div>
                                 <label for="club_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Club') }}</label>
-                                @if($isClubPresident)
+                                @if($isClubAdmin)
                                     <p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">{{ $clubs->first()?->name ?? '—' }}</p>
                                 @else
                                     <select

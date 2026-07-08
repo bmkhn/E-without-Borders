@@ -38,7 +38,7 @@
                                     value="{{ $q }}"
                                     type="text"
                                     class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    placeholder="{{ __('e.g. Lagos') }}"
+                                    placeholder="{{ __('e.g. Palawan') }}"
                                 >
                             </div>
 
@@ -50,12 +50,13 @@
                                     {{ __('Search') }}
                                 </button>
 
-                                @if($q !== '')                                        <a
-                                            href="{{ route('admin.regions.index') }}"
-                                            class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md font-semibold text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 active:bg-gray-100"
-                                        >
-                                            {{ __('Clear') }}
-                                        </a>
+                                @if($q !== '')
+                                    <a
+                                        href="{{ route('admin.regions.index') }}"
+                                        class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md font-semibold text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 active:bg-gray-100"
+                                    >
+                                        {{ __('Clear') }}
+                                    </a>
                                 @endif
                             </div>
                         </form>
@@ -66,13 +67,14 @@
                             <tr>
                                 <x-table-column>{{ __('Name') }}</x-table-column>
                                 <x-table-column>{{ __('Clubs') }}</x-table-column>
+                                <x-table-column>{{ __('Regional Admin') }}</x-table-column>
                                 <x-table-column class="text-right">{{ __('Actions') }}</x-table-column>
                             </tr>
                         </x-table-head>
 
                         @foreach($regions as $region)
                             <tr class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                                <td class="px-3 py-3.5 text-sm text-gray-900 dark:text-gray-100">
+                                <td class="px-3 py-3.5 text-sm font-medium text-gray-900 dark:text-gray-100">
                                     {{ $region->name }}
                                 </td>
 
@@ -83,6 +85,19 @@
                                         </span>
                                     @else
                                         <span class="text-gray-400 dark:text-gray-500">—</span>
+                                    @endif
+                                </td>
+
+                                <td class="px-3 py-3.5 text-sm text-gray-600 dark:text-gray-400">
+                                    @if($region->regionalAdmin)
+                                        <div class="flex items-center gap-2">
+                                            <div class="size-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-400 font-bold text-xs">
+                                                {{ substr($region->regionalAdmin->name, 0, 1) }}
+                                            </div>
+                                            <span class="text-xs">{{ $region->regionalAdmin->email }}</span>
+                                        </div>
+                                    @else
+                                        <span class="text-gray-400 dark:text-gray-500 italic text-xs">{{ __('No admin') }}</span>
                                     @endif
                                 </td>
 
@@ -98,7 +113,7 @@
                                         @if($region->clubs_count > 0)
                                             <span
                                                 class="inline-flex items-center px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-600 rounded-md text-xs font-semibold cursor-not-allowed"
-                                                title="{{ __('Cannot delete: :count :club(s) are assigned to this region.', ['count' => $region->clubs_count, 'club' => Str::plural('club', $region->clubs_count)]) }}"
+                                                title="{{ __('Cannot delete: :count club(s) are assigned to this region.', ['count' => $region->clubs_count]) }}"
                                             >
                                                 {{ __('Delete') }}
                                             </span>

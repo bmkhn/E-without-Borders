@@ -9,14 +9,23 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        Role::updateOrCreate(
-            ['name' => 'national-president', 'guard_name' => 'web'],
-            []
-        );
+        $roles = [
+            'super-admin',
+            'national-admin',
+            'regional-admin',
+            'club-admin',
+        ];
 
-        Role::updateOrCreate(
-            ['name' => 'club-president', 'guard_name' => 'web'],
-            []
-        );
+        foreach ($roles as $role) {
+            Role::updateOrCreate(
+                ['name' => $role, 'guard_name' => 'web'],
+                []
+            );
+        }
+
+        // Remove old role names if they exist
+        foreach (['national-president', 'club-president'] as $oldRole) {
+            Role::where('name', $oldRole)->where('guard_name', 'web')->delete();
+        }
     }
 }

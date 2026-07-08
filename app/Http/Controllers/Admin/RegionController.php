@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\RegionStoreRequest;
 use App\Http\Requests\Admin\RegionUpdateRequest;
 use App\Models\Region;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class RegionController extends Controller
@@ -15,7 +17,10 @@ class RegionController extends Controller
     {
         $q = request()->string('q')->trim()->toString();
 
-        $regionsQuery = Region::query()->withCount('clubs')->orderBy('name');
+        $regionsQuery = Region::query()
+            ->with('regionalAdmin')
+            ->withCount('clubs')
+            ->orderBy('name');
 
         if ($q !== '') {
             $regionsQuery->where('name', 'like', '%' . $q . '%');
@@ -36,15 +41,32 @@ class RegionController extends Controller
 
     public function store(RegionStoreRequest $request): RedirectResponse
     {
-        Region::create($request->validated());
+        $region = Region::create($request->safe()->only(['name']));
+
+        // Create the regional admin user
+        $user = User::create([
+            'name' => $request->ra_name,
+            'email' => $request->ra_email,
+            'password' => Hash::make($request->ra_password),
+            'region_id' => $region->id,
+        ]);
+
+        $user->syncRoles(['regional-admin']);
+
+        activity()
+            ->performedOn($region)
+            ->causedBy(auth()->user())
+            ->log('created');
 
         return redirect()
             ->route('admin.regions.index')
-            ->with('success', 'Region created successfully.');
+            ->with('success', 'Region created successfully with regional admin account.');
     }
 
     public function edit(Region $region): View
     {
+        $region->load('regionalAdmin');
+
         return view('admin.regions.edit', [
             'region' => $region,
         ]);
@@ -52,7 +74,39 @@ class RegionController extends Controller
 
     public function update(RegionUpdateRequest $request, Region $region): RedirectResponse
     {
-        $region->update($request->validated());
+        $region->update($request->safe()->only(['name']));
+
+        // Update regional admin account if provided
+        if ($request->filled('ra_name') || $request->filled('ra_email') || $request->filled('ra_password')) {
+            $raUser = $region->regionalAdmin;
+
+            if ($raUser) {
+                $data = [];
+                if ($request->filled('ra_name')) {
+                    $data['name'] = $request->ra_name;
+                }
+                if ($request->filled('ra_email')) {
+                    $data['email'] = $request->ra_email;
+                }
+                if ($request->filled('ra_password')) {
+                    $data['password'] = Hash::make($request->ra_password);
+                }
+                $raUser->update($data);
+            } else {
+                $raUser = User::create([
+                    'name' => $request->ra_name,
+                    'email' => $request->ra_email,
+                    'password' => Hash::make($request->ra_password),
+                    'region_id' => $region->id,
+                ]);
+                $raUser->syncRoles(['regional-admin']);
+            }
+        }
+
+        activity()
+            ->performedOn($region)
+            ->causedBy(auth()->user())
+            ->log('updated');
 
         return redirect()
             ->route('admin.regions.index')
@@ -66,6 +120,17 @@ class RegionController extends Controller
                 ->route('admin.regions.index')
                 ->with('error', 'Cannot delete region because it still contains clubs');
         }
+
+        // Remove the regional admin account
+        $region->load('regionalAdmin');
+        if ($region->regionalAdmin) {
+            $region->regionalAdmin->delete();
+        }
+
+        activity()
+            ->performedOn($region)
+            ->causedBy(auth()->user())
+            ->log('deleted');
 
         $region->delete();
 
