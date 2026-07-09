@@ -24,7 +24,27 @@
                     @csrf
                     @method('PUT')
 
-                    <div class="space-y-6">
+                    <div class="space-y-6" x-data="{
+                        original: {
+                            region_id: '{{ old('region_id', $club->region_id) }}',
+                            name: '{{ addslashes(old('name', $club->name)) }}',
+                            cp_name: '{{ addslashes(old('cp_name', $club->clubPresident?->name ?? '')) }}',
+                            cp_email: '{{ addslashes(old('cp_email', $club->clubPresident?->email ?? '')) }}',
+                        },
+                        form: {
+                            region_id: '{{ old('region_id', $club->region_id) }}',
+                            name: '{{ addslashes(old('name', $club->name)) }}',
+                            cp_name: '{{ addslashes(old('cp_name', $club->clubPresident?->name ?? '')) }}',
+                            cp_email: '{{ addslashes(old('cp_email', $club->clubPresident?->email ?? '')) }}',
+                        },
+                        get isDirty() {
+                            return this.form.region_id !== this.original.region_id
+                                || this.form.name !== this.original.name
+                                || this.form.cp_name !== this.original.cp_name
+                                || this.form.cp_email !== this.original.cp_email
+                                || (document.getElementById('cp_password')?.value ?? '') !== '';
+                        }
+                    }">
                         {{-- Club Details --}}
                         <div>
                             <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">{{ __('Club Details') }}</h3>
@@ -35,6 +55,7 @@
                                         id="region_id"
                                         name="region_id"
                                         required
+                                        x-model="form.region_id"
                                         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     >
                                         @foreach($regions as $region)
@@ -54,7 +75,7 @@
                                         id="name"
                                         name="name"
                                         type="text"
-                                        value="{{ old('name', $club->name) }}"
+                                        x-model="form.name"
                                         required
                                         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     />
@@ -76,7 +97,7 @@
                                         id="cp_name"
                                         name="cp_name"
                                         type="text"
-                                        value="{{ old('cp_name', $club->clubPresident?->name ?? '') }}"
+                                        x-model="form.cp_name"
                                         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     />
                                     @error('cp_name')
@@ -90,7 +111,7 @@
                                         id="cp_email"
                                         name="cp_email"
                                         type="email"
-                                        value="{{ old('cp_email', $club->clubPresident?->email ?? '') }}"
+                                        x-model="form.cp_email"
                                         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     />
                                     @error('cp_email')
@@ -132,8 +153,11 @@
                         <div class="flex items-center gap-3 pt-2">
                             <button
                                 type="submit"
-                                onclick="return confirm('{{ __('Are you sure you want to update this club and its club president account?') }}')"
-                                class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-sm text-white hover:bg-indigo-500 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                :disabled="!isDirty"
+                                :class="isDirty
+                                    ? 'inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-sm text-white hover:bg-indigo-500 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150'
+                                    : 'inline-flex items-center px-4 py-2 bg-gray-300 dark:bg-gray-600 border border-transparent rounded-md font-semibold text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                                "
                             >
                                 {{ __('Update') }}
                             </button>

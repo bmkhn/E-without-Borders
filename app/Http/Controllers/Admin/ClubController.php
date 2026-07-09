@@ -117,12 +117,24 @@ class ClubController extends Controller
         $user = request()->user();
         $validated = $request->safe()->only(['region_id', 'name']);
 
+        // Capture original values for audit diff
+        $original = [
+            'name' => $club->getOriginal('name'),
+            'region_id' => $club->getOriginal('region_id'),
+        ];
+        $originalCp = $club->clubPresident ? [
+            'cp_name' => $club->clubPresident->name,
+            'cp_email' => $club->clubPresident->email,
+        ] : null;
+
         // Enforce region scope for regional admins
         if ($user->hasRole('regional-admin') && $user->region_id) {
             $validated['region_id'] = $user->region_id;
         }
 
         $club->update($validated);
+
+        $cpChanges = [];
 
         // Update club admin account if provided
         if ($request->filled('cp_name') || $request->filled('cp_email') || $request->filled('cp_password')) {
@@ -140,6 +152,15 @@ class ClubController extends Controller
                     $data['password'] = Hash::make($request->cp_password);
                 }
                 $cpUser->update($data);
+
+                if ($originalCp) {
+                    if ($request->filled('cp_name') && $originalCp['cp_name'] !== $request->cp_name) {
+                        $cpChanges['cp_name'] = ['old' => $originalCp['cp_name'], 'new' => $request->cp_name];
+                    }
+                    if ($request->filled('cp_email') && $originalCp['cp_email'] !== $request->cp_email) {
+                        $cpChanges['cp_email'] = ['old' => $originalCp['cp_email'], 'new' => $request->cp_email];
+                    }
+                }
             } else {
                 $cpUser = User::create([
                     'name' => $request->cp_name,
@@ -148,13 +169,31 @@ class ClubController extends Controller
                     'club_id' => $club->id,
                 ]);
                 $cpUser->syncRoles(['club-admin']);
+                $cpChanges['cp_created'] = ['old' => null, 'new' => $request->cp_email];
+            }
+
+            if ($request->filled('cp_password')) {
+                $cpChanges['cp_password'] = ['old' => '***', 'new' => '*** (updated)'];
             }
         }
+
+        $changes = [];
+        $newName = $club->name;
+        $newRegionId = $club->region_id;
+        if ((string) $original['name'] !== (string) $newName) {
+            $changes['name'] = ['old' => $original['name'], 'new' => $newName];
+        }
+        if ((string) $original['region_id'] !== (string) $newRegionId) {
+            $changes['region_id'] = ['old' => $original['region_id'], 'new' => $newRegionId];
+        }
+
+        $changes = array_merge($changes, $cpChanges);
 
         activity()
             ->performedOn($club)
             ->causedBy(auth()->user())
             ->withProperties([
+                'changes' => $changes,
                 'club_id' => $club->id,
                 'club_name' => $club->name,
                 'region_id' => $club->region_id,

@@ -119,6 +119,15 @@ class AdminController extends Controller
             'club_id' => ['nullable', 'required_if:role,club-admin', 'integer', 'exists:clubs,id'],
         ]);
 
+        // Capture original values for audit diff
+        $original = [
+            'name' => $admin->getOriginal('name'),
+            'email' => $admin->getOriginal('email'),
+            'region_id' => $admin->getOriginal('region_id'),
+            'club_id' => $admin->getOriginal('club_id'),
+            'role' => $admin->roles->first()?->name,
+        ];
+
         $admin->fill([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -133,10 +142,29 @@ class AdminController extends Controller
         $admin->save();
         $admin->syncRoles([$validated['role']]);
 
+        $newValues = [
+            'name' => $admin->name,
+            'email' => $admin->email,
+            'region_id' => $admin->region_id,
+            'club_id' => $admin->club_id,
+            'role' => $validated['role'],
+        ];
+
+        $changes = [];
+        foreach ($newValues as $key => $newVal) {
+            $oldVal = $original[$key] ?? null;
+            if ((string) $oldVal !== (string) $newVal) {
+                $changes[$key] = ['old' => $oldVal, 'new' => $newVal];
+            }
+        }
+
         activity()
             ->performedOn($admin)
             ->causedBy(auth()->user())
-            ->withProperties(['role' => $validated['role']])
+            ->withProperties([
+                'changes' => $changes,
+                'password_updated' => $request->filled('password'),
+            ])
             ->log('updated_admin');
 
         return redirect()

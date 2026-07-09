@@ -40,7 +40,7 @@ class RegionUpdateRequest extends FormRequest
                 // Ignore the current regional admin user if one exists
                 Rule::unique(User::class, 'email')->ignore($region?->regionalAdmin?->id),
             ],
-            'ra_password' => ['sometimes', 'required', 'confirmed', Rules\Password::defaults()],
+            'ra_password' => ['nullable', 'confirmed', Rules\Password::defaults()],
         ];
     }
 

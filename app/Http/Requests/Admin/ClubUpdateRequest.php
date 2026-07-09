@@ -41,7 +41,7 @@ class ClubUpdateRequest extends FormRequest
                 // Ignore the current club president user if one exists
                 Rule::unique(User::class, 'email')->ignore($club?->clubPresident?->id),
             ],
-            'cp_password' => ['sometimes', 'required', 'confirmed', Rules\Password::defaults()],
+            'cp_password' => ['nullable', 'confirmed', Rules\Password::defaults()],
         ];
     }
 

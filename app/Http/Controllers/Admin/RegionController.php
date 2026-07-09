@@ -79,7 +79,18 @@ class RegionController extends Controller
 
     public function update(RegionUpdateRequest $request, Region $region): RedirectResponse
     {
+        // Capture original values for audit diff
+        $original = [
+            'name' => $region->getOriginal('name'),
+        ];
+        $originalRa = $region->regionalAdmin ? [
+            'ra_name' => $region->regionalAdmin->name,
+            'ra_email' => $region->regionalAdmin->email,
+        ] : null;
+
         $region->update($request->safe()->only(['name']));
+
+        $raChanges = [];
 
         // Update regional admin account if provided
         if ($request->filled('ra_name') || $request->filled('ra_email') || $request->filled('ra_password')) {
@@ -97,6 +108,15 @@ class RegionController extends Controller
                     $data['password'] = Hash::make($request->ra_password);
                 }
                 $raUser->update($data);
+
+                if ($originalRa) {
+                    if ($request->filled('ra_name') && $originalRa['ra_name'] !== $request->ra_name) {
+                        $raChanges['ra_name'] = ['old' => $originalRa['ra_name'], 'new' => $request->ra_name];
+                    }
+                    if ($request->filled('ra_email') && $originalRa['ra_email'] !== $request->ra_email) {
+                        $raChanges['ra_email'] = ['old' => $originalRa['ra_email'], 'new' => $request->ra_email];
+                    }
+                }
             } else {
                 $raUser = User::create([
                     'name' => $request->ra_name,
@@ -105,13 +125,27 @@ class RegionController extends Controller
                     'region_id' => $region->id,
                 ]);
                 $raUser->syncRoles(['regional-admin']);
+                $raChanges['ra_created'] = ['old' => null, 'new' => $request->ra_email];
+            }
+
+            if ($request->filled('ra_password')) {
+                $raChanges['ra_password'] = ['old' => '***', 'new' => '*** (updated)'];
             }
         }
+
+        $changes = [];
+        $newName = $region->name;
+        if ((string) $original['name'] !== (string) $newName) {
+            $changes['name'] = ['old' => $original['name'], 'new' => $newName];
+        }
+
+        $changes = array_merge($changes, $raChanges);
 
         activity()
             ->performedOn($region)
             ->causedBy(auth()->user())
             ->withProperties([
+                'changes' => $changes,
                 'region_id' => $region->id,
                 'region_name' => $region->name,
             ])

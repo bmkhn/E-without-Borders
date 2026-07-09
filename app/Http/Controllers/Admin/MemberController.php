@@ -117,6 +117,16 @@ class MemberController extends Controller
 
         $positions = $positionsQuery->get();
 
+        // Resolve the region name for scoped admins
+        $userRegionName = null;
+        if ($isRegionalAdmin && $user->region_id) {
+            $region = \App\Models\Region::find($user->region_id);
+            $userRegionName = $region?->name;
+        } elseif ($isClubAdmin && $user->club_id) {
+            $club = \App\Models\Club::with('region')->find($user->club_id);
+            $userRegionName = $club?->region?->name;
+        }
+
         return view('admin.members.index', [
             'members' => $members,
             'q' => $q,
@@ -133,6 +143,7 @@ class MemberController extends Controller
             'isSuperAdmin' => $isSuperAdmin,
             'isNationalAdmin' => $isNationalAdmin,
             'isRegionalAdmin' => $isRegionalAdmin,
+            'userRegionName' => $userRegionName,
         ]);
     }
 
@@ -243,6 +254,18 @@ class MemberController extends Controller
 
         $isClubAdmin = $user->hasRole('club-admin') && $user->club_id;
 
+        // Capture original values for audit diff
+        $original = [
+            'first_name' => $member->getOriginal('first_name'),
+            'middle_initial' => $member->getOriginal('middle_initial'),
+            'last_name' => $member->getOriginal('last_name'),
+            'suffix' => $member->getOriginal('suffix'),
+            'club_id' => $member->getOriginal('club_id'),
+            'position_id' => $member->getOriginal('position_id'),
+            'status' => $member->getOriginal('status'),
+            'contact_number' => $member->getOriginal('contact_number'),
+        ];
+
         $data = $request->safe()->except(['profile_picture', 'remove_photo', 'certificates']);
 
         if ($isClubAdmin) {
@@ -270,10 +293,36 @@ class MemberController extends Controller
 
         $member->load('club.region');
 
+        $newValues = [
+            'first_name' => $member->first_name,
+            'middle_initial' => $member->middle_initial,
+            'last_name' => $member->last_name,
+            'suffix' => $member->suffix,
+            'club_id' => $member->club_id,
+            'position_id' => $member->position_id,
+            'status' => $member->status,
+            'contact_number' => $member->contact_number,
+        ];
+
+        $changes = [];
+        foreach ($newValues as $key => $newVal) {
+            $oldVal = $original[$key] ?? null;
+            if ((string) $oldVal !== (string) $newVal) {
+                $changes[$key] = ['old' => $oldVal, 'new' => $newVal];
+            }
+        }
+
+        if ($request->hasFile('profile_picture')) {
+            $changes['profile_picture'] = ['old' => '(previous)', 'new' => '(replaced)'];
+        } elseif ($request->boolean('remove_photo')) {
+            $changes['profile_picture'] = ['old' => '(had photo)', 'new' => '(removed)'];
+        }
+
         activity()
             ->performedOn($member)
             ->causedBy(auth()->user())
             ->withProperties([
+                'changes' => $changes,
                 'member_id' => $member->id,
                 'member_name' => $member->name,
                 'club' => $member->club?->name,

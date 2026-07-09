@@ -135,12 +135,12 @@
                             @elseif($isRegionalAdmin)
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Region') }}</label>
-                                    <p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">{{ $members->first()?->club?->region?->name ?? '—' }}</p>
+                                    <p class="mt-1.5 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $userRegionName ?? '—' }}</p>
                                 </div>
-                            @else
+                            @elseif($isClubAdmin)
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('Region') }}</label>
-                                    <p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">—</p>
+                                    <p class="mt-1.5 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $userRegionName ?? '—' }}</p>
                                 </div>
                             @endif
 

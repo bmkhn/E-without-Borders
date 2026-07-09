@@ -8,11 +8,15 @@
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             @if(session('success'))
-                <x-alert type="success">{{ session('success') }}</x-alert>
+                <div class="mb-4">
+                    <x-alert type="success">{{ session('success') }}</x-alert>
+                </div>
             @endif
 
             @if(session('error'))
-                <x-alert type="danger">{{ session('error') }}</x-alert>
+                <div class="mb-4">
+                    <x-alert type="danger">{{ session('error') }}</x-alert>
+                </div>
             @endif
 
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
