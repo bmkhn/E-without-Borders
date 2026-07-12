@@ -18,6 +18,10 @@ class AdminController extends Controller
 {
     public function index(): View
     {
+        $user = request()->user();
+        $isNationalAdmin = $user->hasRole('national-admin');
+        $isSuperAdmin = $user->hasRole('super-admin');
+
         $q = request()->string('q')->trim()->toString();
         $filterRole = request()->string('role')->trim()->toString();
 
@@ -25,6 +29,13 @@ class AdminController extends Controller
             ->whereHas('roles')
             ->with('roles', 'club', 'region')
             ->orderBy('name');
+
+        // National Admin cannot see Super Admin accounts
+        if ($isNationalAdmin) {
+            $adminsQuery->whereDoesntHave('roles', function ($q) {
+                $q->where('name', 'super-admin');
+            });
+        }
 
         if ($q !== '') {
             $adminsQuery->where(function ($query) use ($q) {
@@ -45,29 +56,43 @@ class AdminController extends Controller
             'admins' => $admins,
             'q' => $q,
             'filterRole' => $filterRole,
+            'isNationalAdmin' => $isNationalAdmin,
+            'isSuperAdmin' => $isSuperAdmin,
         ]);
     }
 
     public function create(): View
     {
+        $user = request()->user();
+
         return view('admin.admins.create', [
             'regions' => Region::query()->orderBy('name')->get(),
             'clubs' => Club::query()->orderBy('name')->get(),
+            'isNationalAdmin' => $user->hasRole('national-admin'),
+            'isSuperAdmin' => $user->hasRole('super-admin'),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $user = request()->user();
+        $isNationalAdmin = $user->hasRole('national-admin');
+
+        // National Admin cannot create Super Admin accounts
+        $allowedRoles = $isNationalAdmin
+            ? 'national-admin,regional-admin,club-admin'
+            : 'super-admin,national-admin,regional-admin,club-admin';
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class, 'email')],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'string', 'in:super-admin,national-admin,regional-admin,club-admin'],
+            'role' => ['required', 'string', 'in:' . $allowedRoles],
             'region_id' => ['nullable', 'required_if:role,regional-admin', 'integer', 'exists:regions,id'],
             'club_id' => ['nullable', 'required_if:role,club-admin', 'integer', 'exists:clubs,id'],
         ]);
 
-        $user = User::create([
+        $adminUser = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
@@ -75,10 +100,10 @@ class AdminController extends Controller
             'club_id' => $validated['club_id'] ?? null,
         ]);
 
-        $user->syncRoles([$validated['role']]);
+        $adminUser->syncRoles([$validated['role']]);
 
         activity()
-            ->performedOn($user)
+            ->performedOn($adminUser)
             ->causedBy(auth()->user())
             ->withProperties(['role' => $validated['role']])
             ->log('created_admin');
@@ -94,13 +119,23 @@ class AdminController extends Controller
             abort(404, 'Not an admin account.');
         }
 
+        $user = request()->user();
+        $isNationalAdmin = $user->hasRole('national-admin');
+
+        // National Admin cannot edit Super Admin accounts
+        $adminRole = $admin->roles->first()?->name;
+        if ($isNationalAdmin && $adminRole === 'super-admin') {
+            abort(403, 'You cannot edit Super Admin accounts.');
+        }
+
         $admin->load('roles', 'club', 'region');
 
         return view('admin.admins.edit', [
             'admin' => $admin,
             'regions' => Region::query()->orderBy('name')->get(),
             'clubs' => Club::query()->orderBy('name')->get(),
-            'currentRole' => $admin->roles->first()?->name ?? 'club-admin',
+            'currentRole' => $adminRole ?? 'club-admin',
+            'isNationalAdmin' => $isNationalAdmin,
         ]);
     }
 
@@ -110,11 +145,25 @@ class AdminController extends Controller
             abort(404, 'Not an admin account.');
         }
 
+        $user = request()->user();
+        $isNationalAdmin = $user->hasRole('national-admin');
+
+        // National Admin cannot update Super Admin accounts
+        $adminRole = $admin->roles->first()?->name;
+        if ($isNationalAdmin && $adminRole === 'super-admin') {
+            abort(403, 'You cannot update Super Admin accounts.');
+        }
+
+        // National Admin cannot set role to super-admin
+        $allowedRoles = $isNationalAdmin
+            ? 'national-admin,regional-admin,club-admin'
+            : 'super-admin,national-admin,regional-admin,club-admin';
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class, 'email')->ignore($admin->id)],
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'string', 'in:super-admin,national-admin,regional-admin,club-admin'],
+            'role' => ['required', 'string', 'in:' . $allowedRoles],
             'region_id' => ['nullable', 'required_if:role,regional-admin', 'integer', 'exists:regions,id'],
             'club_id' => ['nullable', 'required_if:role,club-admin', 'integer', 'exists:clubs,id'],
         ]);
@@ -125,7 +174,7 @@ class AdminController extends Controller
             'email' => $admin->getOriginal('email'),
             'region_id' => $admin->getOriginal('region_id'),
             'club_id' => $admin->getOriginal('club_id'),
-            'role' => $admin->roles->first()?->name,
+            'role' => $adminRole,
         ];
 
         $admin->fill([
@@ -176,6 +225,15 @@ class AdminController extends Controller
     {
         if (!$admin->roles->isNotEmpty()) {
             abort(404, 'Not an admin account.');
+        }
+
+        $user = request()->user();
+        $isNationalAdmin = $user->hasRole('national-admin');
+
+        // National Admin cannot delete Super Admin accounts
+        $adminRole = $admin->roles->first()?->name;
+        if ($isNationalAdmin && $adminRole === 'super-admin') {
+            abort(403, 'You cannot delete Super Admin accounts.');
         }
 
         // Prevent self-deletion

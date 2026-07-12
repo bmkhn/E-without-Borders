@@ -68,7 +68,9 @@
                                 class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
                                 <option value="">{{ __('Select role') }}</option>
-                                <option value="super-admin" @selected(old('role') === 'super-admin')>{{ __('Super Admin') }}</option>
+                                @if(!isset($isNationalAdmin) || !$isNationalAdmin)
+                                    <option value="super-admin" @selected(old('role') === 'super-admin')>{{ __('Super Admin') }}</option>
+                                @endif
                                 <option value="national-admin" @selected(old('role') === 'national-admin')>{{ __('National Admin') }}</option>
                                 <option value="regional-admin" @selected(old('role') === 'regional-admin')>{{ __('Regional Admin') }}</option>
                                 <option value="club-admin" @selected(old('role') === 'club-admin')>{{ __('Club Admin') }}</option>

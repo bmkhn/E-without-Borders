@@ -29,8 +29,8 @@ Route::middleware(['auth', 'scope'])->prefix('admin')->group(function () {
         return view('admin.dashboard');
     })->name('admin.dashboard');
 
-    // Super Admin only: admin management
-    Route::middleware(['role:super-admin', 'permission:manage-admins'])->group(function () {
+    // Super Admin & National Admin: admin management (National Admin cannot see/create/edit/delete Super Admins)
+    Route::middleware(['role:super-admin|national-admin', 'permission:manage-admins'])->group(function () {
         Route::get('/admins', [\App\Http\Controllers\Admin\AdminController::class, 'index'])
             ->name('admin.admins.index');
         Route::get('/admins/create', [\App\Http\Controllers\Admin\AdminController::class, 'create'])

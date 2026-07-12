@@ -49,7 +49,9 @@
                                 onchange="this.form.submit()"
                             >
                                 <option value="">{{ __('All Roles') }}</option>
-                                <option value="super-admin" @selected($filterRole === 'super-admin')>{{ __('Super Admin') }}</option>
+                                @if(!isset($isNationalAdmin) || !$isNationalAdmin)
+                                    <option value="super-admin" @selected($filterRole === 'super-admin')>{{ __('Super Admin') }}</option>
+                                @endif
                                 <option value="national-admin" @selected($filterRole === 'national-admin')>{{ __('National Admin') }}</option>
                                 <option value="regional-admin" @selected($filterRole === 'regional-admin')>{{ __('Regional Admin') }}</option>
                                 <option value="club-admin" @selected($filterRole === 'club-admin')>{{ __('Club Admin') }}</option>

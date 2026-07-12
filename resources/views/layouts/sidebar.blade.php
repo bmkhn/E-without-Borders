@@ -144,8 +144,8 @@
                         <div class="pt-1 mt-2 border-t border-gray-100 dark:border-gray-800"></div>
                     </li>
 
-                    <!-- Admin Accounts (Super Admin) -->
-                    @if($isSuperAdmin)
+                    <!-- Admin Accounts (Super Admin & National Admin) -->
+                    @if($isSuperAdmin || $isNationalAdmin)
                         <li>
                             <a
                                 href="{{ route('admin.admins.index') }}"

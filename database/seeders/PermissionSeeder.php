@@ -59,7 +59,7 @@ class PermissionSeeder extends Seeder
         Role::findByName('super-admin', 'web')
             ->syncPermissions(Permission::all());
 
-        // national-admin: regions, clubs, positions, members, audit logs
+        // national-admin: everything except manage-admins (which is now granted below)
         Role::findByName('national-admin', 'web')
             ->syncPermissions([
                 'view-regions',
@@ -78,6 +78,7 @@ class PermissionSeeder extends Seeder
                 'create-members',
                 'edit-members',
                 'delete-members',
+                'manage-admins',
                 'view-audit-logs',
             ]);
 
