@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\RegionUpdateRequest;
 use App\Models\Region;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
@@ -156,8 +157,14 @@ class RegionController extends Controller
             ->with('success', 'Region updated successfully.');
     }
 
-    public function destroy(Region $region): RedirectResponse
+    public function destroy(Request $request, Region $region): RedirectResponse
     {
+        // Extra confirmation checks
+        $request->validate([
+            'confirm_delete' => ['required', 'accepted'],
+            'confirm_text' => ['required', 'string', 'in:DELETE'],
+        ]);
+
         if ($region->clubs()->exists()) {
             return redirect()
                 ->route('admin.regions.index')

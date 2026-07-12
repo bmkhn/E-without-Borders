@@ -9,6 +9,7 @@ use App\Models\Club;
 use App\Models\Region;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
@@ -205,8 +206,14 @@ class ClubController extends Controller
             ->with('success', 'Club updated successfully.');
     }
 
-    public function destroy(Club $club): RedirectResponse
+    public function destroy(Request $request, Club $club): RedirectResponse
     {
+        // Extra confirmation checks
+        $request->validate([
+            'confirm_delete' => ['required', 'accepted'],
+            'confirm_text' => ['required', 'string', 'in:DELETE'],
+        ]);
+
         if ($club->members()->exists()) {
             return redirect()
                 ->route('admin.clubs.index')

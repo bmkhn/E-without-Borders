@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\PositionStoreRequest;
 use App\Http\Requests\Admin\PositionUpdateRequest;
 use App\Models\Position;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class PositionController extends Controller
@@ -61,12 +62,22 @@ class PositionController extends Controller
 
     public function update(PositionUpdateRequest $request, Position $position): RedirectResponse
     {
+        // Capture original value for audit diff
+        $originalName = $position->getOriginal('name');
+
         $position->update($request->validated());
+
+        $changes = [];
+        $newName = $position->name;
+        if ((string) $originalName !== (string) $newName) {
+            $changes['name'] = ['old' => $originalName, 'new' => $newName];
+        }
 
         activity()
             ->performedOn($position)
             ->causedBy(auth()->user())
             ->withProperties([
+                'changes' => $changes,
                 'position_id' => $position->id,
                 'position_name' => $position->name,
             ])
@@ -77,8 +88,14 @@ class PositionController extends Controller
             ->with('success', 'Position updated successfully.');
     }
 
-    public function destroy(Position $position): RedirectResponse
+    public function destroy(Request $request, Position $position): RedirectResponse
     {
+        // Extra confirmation checks
+        $request->validate([
+            'confirm_delete' => ['required', 'accepted'],
+            'confirm_text' => ['required', 'string', 'in:DELETE'],
+        ]);
+
         if ($position->members()->exists()) {
             return redirect()
                 ->route('admin.positions.index')
