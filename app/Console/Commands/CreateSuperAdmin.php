@@ -8,28 +8,52 @@ use Illuminate\Support\Facades\Hash;
 
 class CreateSuperAdmin extends Command
 {
-    protected $signature = 'admin:create-super {name?} {email?} {password?}';
-    protected $description = 'Create a super-admin user';
+    protected $signature = 'make:super-admin';
+    protected $description = 'Ensure a super-admin account exists with email superadmin@example.com and password "password"';
 
     public function handle(): int
     {
-        $name = $this->argument('name') ?? $this->ask('Name', 'Super Admin');
-        $email = $this->argument('email') ?? $this->ask('Email', 'superadmin@example.com');
-        $password = $this->argument('password') ?? $this->secret('Password');
+        $email = 'superadmin@example.com';
+        $password = 'password';
+        $name = 'Super Admin';
 
-        if (!$password) {
-            $password = 'password';
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            // Create the account
+            $user = User::create([
+                'name' => $name,
+                'email' => $email,
+                'password' => Hash::make($password),
+            ]);
+            $user->syncRoles(['super-admin']);
+            $this->info("Super admin created: {$email}");
+            return Command::SUCCESS;
         }
 
-        $user = User::create([
-            'name' => $name,
-            'email' => $email,
-            'password' => Hash::make($password),
-        ]);
+        // Account exists — check if password needs updating
+        if (!Hash::check($password, $user->password)) {
+            $user->password = Hash::make($password);
+            $user->save();
 
-        $user->syncRoles(['super-admin']);
+            // Ensure the role is still assigned
+            if (!$user->hasRole('super-admin')) {
+                $user->syncRoles(['super-admin']);
+            }
 
-        $this->info("Super admin created: {$user->email}");
+            $this->warn("Super admin '{$email}' already exists but the password was different.");
+            $this->line('The password has been forcefully updated to "password".');
+            return Command::SUCCESS;
+        }
+
+        // Ensure the role is assigned (in case it was removed somehow)
+        if (!$user->hasRole('super-admin')) {
+            $user->syncRoles(['super-admin']);
+            $this->warn("Super admin '{$email}' existed but was missing the super-admin role. Role has been reassigned.");
+            return Command::SUCCESS;
+        }
+
+        $this->line("Super admin '{$email}' already exists with the correct password. Nothing to do.");
 
         return Command::SUCCESS;
     }

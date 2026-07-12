@@ -11,3 +11,6 @@ Artisan::command('inspire', function () {
 // Year rollover: inactivate members who haven't paid for the current year
 // Runs daily at midnight; only actually processes on Jan 1
 Schedule::command('members:process-year-rollover')->daily();
+
+// Prune activity logs older than 1 year (runs daily)
+Schedule::command('activitylog:prune')->daily();
