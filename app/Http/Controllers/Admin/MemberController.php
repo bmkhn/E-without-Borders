@@ -73,6 +73,7 @@ class MemberController extends Controller
             $membersQuery->where(function ($query) use ($q) {
                 $query->where('first_name', 'like', '%' . $q . '%')
                     ->orWhere('last_name', 'like', '%' . $q . '%')
+                    ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ['%' . $q . '%'])
                     ->orWhere('contact_number', 'like', '%' . $q . '%')
                     ->orWhere('slug', 'like', '%' . $q . '%');
             });
@@ -392,6 +393,7 @@ class MemberController extends Controller
             $membersQuery->where(function ($query) use ($q) {
                 $query->where('first_name', 'like', '%' . $q . '%')
                     ->orWhere('last_name', 'like', '%' . $q . '%')
+                    ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ['%' . $q . '%'])
                     ->orWhere('contact_number', 'like', '%' . $q . '%')
                     ->orWhere('slug', 'like', '%' . $q . '%');
             });
@@ -823,6 +825,7 @@ class MemberController extends Controller
             $membersQuery->where(function ($query) use ($q) {
                 $query->where('first_name', 'like', '%' . $q . '%')
                     ->orWhere('last_name', 'like', '%' . $q . '%')
+                    ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ['%' . $q . '%'])
                     ->orWhere('contact_number', 'like', '%' . $q . '%')
                     ->orWhere('slug', 'like', '%' . $q . '%');
             });

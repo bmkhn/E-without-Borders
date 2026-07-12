@@ -164,6 +164,25 @@ Route::middleware(['auth', 'scope'])->prefix('admin')->group(function () {
         ->middleware(['role:super-admin|national-admin|regional-admin|club-admin', 'permission:edit-members'])
         ->name('admin.payments.destroy');
 
+    // Email uniqueness check (used by live real-time validation in forms)
+    Route::get('/check-email', function (Illuminate\Http\Request $request) {
+        $email = $request->input('email');
+        $ignoreId = $request->input('ignore');
+
+        if (!$email) {
+            return response()->json(['available' => true]);
+        }
+
+        $query = \App\Models\User::where('email', $email);
+        if ($ignoreId) {
+            $query->where('id', '!=', $ignoreId);
+        }
+
+        return response()->json([
+            'available' => !$query->exists(),
+        ]);
+    })->middleware(['auth', 'scope'])->name('admin.check-email');
+
     Route::get('/{any}', function () {
         return view('admin.*');
     })->where('any', '.*')->name('admin.catchall');

@@ -222,7 +222,7 @@ class AdminController extends Controller
             ->with('success', 'Admin account updated successfully.');
     }
 
-    public function destroy(User $admin): RedirectResponse
+    public function destroy(Request $request, User $admin): RedirectResponse
     {
         if (!$admin->roles->isNotEmpty()) {
             abort(404, 'Not an admin account.');
@@ -243,6 +243,12 @@ class AdminController extends Controller
                 ->route('admin.admins.index')
                 ->with('error', 'You cannot delete your own account.');
         }
+
+        // Require confirmation
+        $request->validate([
+            'confirm_delete' => ['required', 'accepted'],
+            'confirm_text' => ['required', 'string', 'in:DELETE'],
+        ]);
 
         activity()
             ->performedOn($admin)

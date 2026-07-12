@@ -247,7 +247,10 @@ class AdminCRUDTest extends TestCase
 
         $this->actingAs($this->superAdmin);
 
-        $response = $this->delete(route('admin.admins.destroy', $admin));
+        $response = $this->delete(route('admin.admins.destroy', $admin), [
+            'confirm_delete' => '1',
+            'confirm_text' => 'DELETE',
+        ]);
 
         $response->assertRedirect(route('admin.admins.index'));
         $response->assertSessionHas('success');
@@ -260,7 +263,10 @@ class AdminCRUDTest extends TestCase
     {
         $this->actingAs($this->superAdmin);
 
-        $response = $this->delete(route('admin.admins.destroy', $this->superAdmin));
+        $response = $this->delete(route('admin.admins.destroy', $this->superAdmin), [
+            'confirm_delete' => '1',
+            'confirm_text' => 'DELETE',
+        ]);
 
         $response->assertRedirect(route('admin.admins.index'));
         $response->assertSessionHas('error');

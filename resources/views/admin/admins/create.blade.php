@@ -26,7 +26,32 @@
                     <div class="space-y-4" x-data="{
                         role: '{{ old('role') }}',
                         get isRegional() { return this.role === 'regional-admin'; },
-                        get isClub() { return this.role === 'club-admin'; }
+                        get isClub() { return this.role === 'club-admin'; },
+                        emailValue: '{{ old('email') }}',
+                        emailAvailable: null,
+                        emailChecking: false,
+                        emailTimeout: null,
+                        checkEmail(value) {
+                            clearTimeout(this.emailTimeout);
+                            if (!value || !value.includes('@') || value.length < 5) {
+                                this.emailAvailable = null;
+                                this.emailChecking = false;
+                                return;
+                            }
+                            this.emailChecking = true;
+                            this.emailTimeout = setTimeout(() => {
+                                fetch('{{ route('admin.check-email') }}?email=' + encodeURIComponent(value))
+                                    .then(r => r.json())
+                                    .then(data => {
+                                        this.emailAvailable = data.available;
+                                        this.emailChecking = false;
+                                    })
+                                    .catch(() => {
+                                        this.emailAvailable = null;
+                                        this.emailChecking = false;
+                                    });
+                            }, 500);
+                        }
                     }">
                         <div>
                             <x-input-label for="name" :value="__('Name')" />
@@ -45,14 +70,30 @@
 
                         <div>
                             <x-input-label for="email" :value="__('Email')" />
-                            <input
-                                id="email"
-                                name="email"
-                                type="email"
-                                value="{{ old('email') }}"
-                                required
-                                class="mt-1.5 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            />
+                            <div class="relative">
+                                <input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    x-model="emailValue"
+                                    @input="checkEmail($el.value)"
+                                    required
+                                    class="mt-1.5 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 pr-10"
+                                />
+                                <div class="absolute inset-y-0 right-4 top-1.5 flex items-center pointer-events-none">
+                                    <svg x-show="emailChecking" x-cloak class="size-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                    </svg>
+                                    <svg x-show="!emailChecking && emailAvailable === true" x-cloak class="size-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <svg x-show="!emailChecking && emailAvailable === false" x-cloak class="size-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <p x-show="!emailChecking && emailAvailable === false" x-cloak class="mt-1 text-sm text-red-600">{{ __('This email is already in use.') }}</p>
                             @error('email')
                                 <x-input-error class="mt-1" :messages="[$message]" />
                             @enderror
@@ -148,7 +189,7 @@
                         <div class="flex items-center gap-3 pt-4">
                             <button
                                 type="submit"
-                                :disabled="submitting"
+                                :disabled="submitting || emailAvailable === false"
                                 class="inline-flex items-center px-4 py-2 bg-indigo-600 dark:bg-indigo-500 border border-transparent rounded-md font-semibold text-sm text-white hover:bg-indigo-500 dark:hover:bg-indigo-400 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
                             >
                                 <span x-show="!submitting">{{ __('Create Admin') }}</span>

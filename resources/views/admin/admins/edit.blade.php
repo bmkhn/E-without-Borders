@@ -43,6 +43,9 @@
                         get isRegional() { return this.form.role === 'regional-admin'; },
                         get isClub() { return this.form.role === 'club-admin'; },
                         password: '',
+                        emailAvailable: null,
+                        emailChecking: false,
+                        emailTimeout: null,
                         get isDirty() {
                             return this.form.name !== this.original.name
                                 || this.form.email !== this.original.email
@@ -50,6 +53,27 @@
                                 || this.form.region_id !== this.original.region_id
                                 || this.form.club_id !== this.original.club_id
                                 || this.password !== '';
+                        },
+                        checkEmail(value) {
+                            clearTimeout(this.emailTimeout);
+                            if (!value || !value.includes('@') || value.length < 5) {
+                                this.emailAvailable = null;
+                                this.emailChecking = false;
+                                return;
+                            }
+                            this.emailChecking = true;
+                            this.emailTimeout = setTimeout(() => {
+                                fetch('{{ route('admin.check-email') }}?email=' + encodeURIComponent(value) + '&ignore={{ $admin->id }}')
+                                    .then(r => r.json())
+                                    .then(data => {
+                                        this.emailAvailable = data.available;
+                                        this.emailChecking = false;
+                                    })
+                                    .catch(() => {
+                                        this.emailAvailable = null;
+                                        this.emailChecking = false;
+                                    });
+                            }, 500);
                         }
                     }">
                         <div>
@@ -69,14 +93,30 @@
 
                         <div>
                             <x-input-label for="email" :value="__('Email')" />
-                            <input
-                                id="email"
-                                name="email"
-                                type="email"
-                                x-model="form.email"
-                                required
-                                class="mt-1.5 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            />
+                            <div class="relative">
+                                <input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    x-model="form.email"
+                                    @input="checkEmail($el.value)"
+                                    required
+                                    class="mt-1.5 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 pr-10"
+                                />
+                                <div class="absolute inset-y-0 right-4 top-1.5 flex items-center pointer-events-none">
+                                    <svg x-show="emailChecking" x-cloak class="size-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                    </svg>
+                                    <svg x-show="!emailChecking && emailAvailable === true" x-cloak class="size-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <svg x-show="!emailChecking && emailAvailable === false" x-cloak class="size-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <p x-show="!emailChecking && emailAvailable === false" x-cloak class="mt-1 text-sm text-red-600">{{ __('This email is already in use.') }}</p>
                             @error('email')
                                 <x-input-error class="mt-1" :messages="[$message]" />
                             @enderror
@@ -173,8 +213,8 @@
                         <div class="flex items-center gap-3 pt-4">
                             <button
                                 type="submit"
-                                :disabled="!isDirty || submitting"
-                                :class="!isDirty || submitting
+                                :disabled="!isDirty || submitting || emailAvailable === false"
+                                :class="!isDirty || submitting || emailAvailable === false
                                     ? 'inline-flex items-center px-4 py-2 bg-gray-300 dark:bg-gray-600 border border-transparent rounded-md font-semibold text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed'
                                     : 'inline-flex items-center px-4 py-2 bg-indigo-600 dark:bg-indigo-500 border border-transparent rounded-md font-semibold text-sm text-white hover:bg-indigo-500 dark:hover:bg-indigo-400 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150'
                                 "
@@ -202,17 +242,19 @@
                 @if($admin->id !== auth()->id())
                     <div class="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
                         <h3 class="text-sm font-semibold text-red-600 dark:text-red-400 mb-3">{{ __('Danger Zone') }}</h3>
-                        <form method="POST" action="{{ route('admin.admins.destroy', $admin) }}" onsubmit="return confirm('{{ __('Are you sure you want to delete this admin account?') }}')">
-                            @csrf
-                            @method('DELETE')
-                            <button
-                                type="submit"
-                                class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-sm text-white hover:bg-red-500 transition"
-                                onclick="this.disabled=true; this.classList.add('opacity-50','cursor-not-allowed'); this.form.submit();"
-                            >
-                                {{ __('Delete This Admin') }}
-                            </button>
-                        </form>
+                        <x-confirm-delete-modal
+                            :action="route('admin.admins.destroy', $admin)"
+                            title="{{ __('Delete Admin Account') }}"
+                            :message="__('This will permanently delete the admin account for :name (:email). This action cannot be undone.', ['name' => $admin->name, 'email' => $admin->email])"
+                            buttonText="{{ __('Delete This Admin') }}"
+                            button-class="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/50"
+                            type="permanent"
+                        >
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            {{ __('Delete') }}
+                        </x-confirm-delete-modal>
                     </div>
                 @endif
             </x-card>
