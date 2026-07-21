@@ -35,11 +35,22 @@
                             ra_name: '{{ addslashes(old('ra_name', optional($region->regionalAdmin)->name)) }}',
                             ra_email: '{{ addslashes(old('ra_email', optional($region->regionalAdmin)->email)) }}',
                         },
+                        ra_password: '',
                         get isDirty() {
                             return this.form.name !== this.original.name
                                 || this.form.ra_name !== this.original.ra_name
                                 || this.form.ra_email !== this.original.ra_email
-                                || (document.getElementById('ra_password')?.value ?? '') !== '';
+                                || this.ra_password !== '';
+                        },
+                        get isEmailLowercase() {
+                            return this.form.ra_email === '' || this.form.ra_email === this.form.ra_email.toLowerCase();
+                        },
+                        get isPasswordValid() {
+                            // Password is optional in edit; if filled, must be >= 8 chars
+                            return this.ra_password === '' || this.ra_password.length >= 8;
+                        },
+                        get formValid() {
+                            return this.isDirty && this.isEmailLowercase && this.isPasswordValid && this.emailAvailable !== false;
                         },
                         emailAvailable: null,
                         emailChecking: false,
@@ -110,6 +121,7 @@
                                             type="email"
                                             x-model="form.ra_email"
                                             @input="checkEmail($el.value)"
+                                            @blur="form.ra_email = form.ra_email.toLowerCase()"
                                             class="mt-1.5 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 pr-10"
                                         />
                                         <div class="absolute inset-y-0 right-4 top-1.5 flex items-center pointer-events-none">
@@ -126,6 +138,10 @@
                                         </div>
                                     </div>
                                     <p x-show="!emailChecking && emailAvailable === false" x-cloak class="mt-1 text-sm text-red-600">{{ __('This email is already in use.') }}</p>
+                                    <p x-show="form.ra_email.length > 0 && !isEmailLowercase" x-cloak class="mt-1 text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                                        <svg class="size-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        {{ __('Email should be lowercase. It will be converted on save.') }}
+                                    </p>
                                     @error('ra_email')
                                         <x-input-error class="mt-1" :messages="[$message]" />
                                     @enderror
@@ -137,9 +153,14 @@
                                         id="ra_password"
                                         name="ra_password"
                                         type="password"
+                                        x-model="ra_password"
                                         class="mt-1.5 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                         placeholder="{{ __('Leave blank to keep current') }}"
                                     />
+                                    <p x-show="ra_password.length > 0 && !isPasswordValid" x-cloak class="mt-1 text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                                        <svg class="size-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        {{ __('Password must be at least 8 characters if changed.') }} <span class="text-gray-500">(<span x-text="8 - ra_password.length"></span> {{ __('more needed') }})</span>
+                                    </p>
                                     @error('ra_password')
                                         <x-input-error class="mt-1" :messages="[$message]" />
                                     @enderror
@@ -160,9 +181,9 @@
                         <div class="flex items-center gap-3 pt-2">
                             <button
                                 type="submit"
-                                :disabled="!isDirty || submitting || emailAvailable === false"
-                                :class="!isDirty || submitting || emailAvailable === false
-                                    ? 'inline-flex items-center px-4 py-2 bg-gray-300 dark:bg-gray-600 border border-transparent rounded-md font-semibold text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                                :disabled="!formValid || submitting"
+                                :class="!formValid || submitting
+                                    ? 'inline-flex items-center px-4 py-2 bg-indigo-600 dark:bg-indigo-500 border border-transparent rounded-md font-semibold text-sm text-white opacity-50 cursor-not-allowed'
                                     : 'inline-flex items-center px-4 py-2 bg-indigo-600 dark:bg-indigo-500 border border-transparent rounded-md font-semibold text-sm text-white hover:bg-indigo-500 dark:hover:bg-indigo-400 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150'
                                 "
                             >

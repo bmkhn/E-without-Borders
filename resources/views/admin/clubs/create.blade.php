@@ -29,6 +29,15 @@
                         get passwordsMatch() {
                             return this.password !== '' && this.password === this.confirmPassword;
                         },
+                        get isEmailLowercase() {
+                            return this.emailValue === this.emailValue.toLowerCase();
+                        },
+                        get isPasswordLongEnough() {
+                            return this.password.length >= 8;
+                        },
+                        get formValid() {
+                            return this.passwordsMatch && this.isEmailLowercase && this.isPasswordLongEnough && this.emailAvailable !== false;
+                        },
                         emailValue: '{{ old('cp_email') }}',
                         emailAvailable: null,
                         emailChecking: false,
@@ -125,6 +134,7 @@
                                             type="email"
                                             x-model="emailValue"
                                             @input="checkEmail($el.value)"
+                                            @blur="emailValue = emailValue.toLowerCase()"
                                             required
                                             class="mt-1.5 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 pr-10"
                                         />
@@ -142,6 +152,10 @@
                                         </div>
                                     </div>
                                     <p x-show="!emailChecking && emailAvailable === false" x-cloak class="mt-1 text-sm text-red-600">{{ __('This email is already in use.') }}</p>
+                                    <p x-show="emailValue.length > 0 && !isEmailLowercase" x-cloak class="mt-1 text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                                        <svg class="size-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        {{ __('Email should be lowercase. It will be converted on save.') }}
+                                    </p>
                                     @error('cp_email')
                                         <x-input-error class="mt-1" :messages="[$message]" />
                                     @enderror
@@ -157,6 +171,14 @@
                                         required
                                         class="mt-1.5 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     />
+                                    <p x-show="password.length > 0 && !isPasswordLongEnough" x-cloak class="mt-1 text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                                        <svg class="size-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        {{ __('Password must be at least 8 characters.') }} <span class="text-gray-500">(<span x-text="8 - password.length"></span> {{ __('more needed') }})</span>
+                                    </p>
+                                    <p x-show="password.length >= 8" class="mt-1 text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                                        <svg class="size-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        {{ __('Password meets minimum length.') }}
+                                    </p>
                                     @error('cp_password')
                                         <x-input-error class="mt-1" :messages="[$message]" />
                                     @enderror
@@ -182,9 +204,9 @@
                         <div class="flex items-center gap-3 pt-2">
                             <button
                                 type="submit"
-                                :disabled="!passwordsMatch || submitting || emailAvailable === false"
-                                :class="!passwordsMatch || submitting || emailAvailable === false
-                                    ? 'inline-flex items-center px-4 py-2 bg-gray-300 dark:bg-gray-600 border border-transparent rounded-md font-semibold text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                                :disabled="!formValid || submitting"
+                                :class="!formValid || submitting
+                                    ? 'inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-sm text-white opacity-50 cursor-not-allowed'
                                     : 'inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-sm text-white hover:bg-indigo-500 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150'
                                 "
                             >
